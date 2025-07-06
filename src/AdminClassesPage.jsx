@@ -7,29 +7,78 @@ export default function AdminClassesPage() {
   const [form, setForm] = useState({});
   const [selectedDay, setSelectedDay] = useState(null);
 
-  const API_BASE = "https://zyrax-xi.vercel.app/zyrax/classes/"; // ✅ Added trailing slash
+  const API_BASE = "https://zyrax-xi.vercel.app/zyrax/classes/";
 
   const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-  const fetchAuthHeaders = () => ({
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("access")}`,
-  });
+  function isTokenExpired(token) {
+    if (!token) return true;
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.exp * 1000 < Date.now();
+    } catch (e) {
+      console.error("Invalid token:", e);
+      return true;
+    }
+  }
+
+  async function refreshAccessToken() {
+    const refresh = localStorage.getItem("refresh");
+    if (!refresh) throw new Error("No refresh token found — please log in again.");
+    const response = await fetch("https://zyrax-xi.vercel.app/zyrax/refresh/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh }),
+    });
+    if (!response.ok) {
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
+      throw new Error("Session expired. Please log in again.");
+    }
+    const data = await response.json();
+    localStorage.setItem("access", data.access);
+    console.log("Token refreshed!");
+    return data.access;
+  }
+
+  async function fetchAuthHeaders() {
+    let token = localStorage.getItem("access");
+    if (!token) throw new Error("No access token found — redirecting to login.");
+    if (isTokenExpired(token)) {
+      console.log("Access token expired, refreshing...");
+      token = await refreshAccessToken();
+    }
+    console.log("Using token:", token);
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+  }
 
   useEffect(() => {
     const fetchClasses = async () => {
       setLoading(true);
       try {
-        const response = await fetch(API_BASE, {
-          headers: fetchAuthHeaders(),
-          credentials: "include", // ✅ Added credentials for CSRF/CORS
-        });
-        if (!response.ok) throw new Error('Failed to fetch classes');
+        const headers = await fetchAuthHeaders();
+        const response = await fetch(API_BASE, { headers });
+        if (response.status === 401) {
+          alert("Session expired. Please log in again.");
+          localStorage.removeItem("access");
+          localStorage.removeItem("refresh");
+          window.location.href = "/login";
+          return;
+        }
+        if (!response.ok) throw new Error(`Failed to fetch classes. Status: ${response.status}`);
         const data = await response.json();
         setClasses(data);
       } catch (error) {
-        console.error(error);
-        alert('Could not load classes. Make sure you are logged in.');
+        console.error("Fetch classes error:", error);
+        alert(error.message.includes("No access token") ?
+          "You must log in first." :
+          "Could not load classes. Make sure you are logged in.");
+        if (error.message.includes("No access token")) {
+          window.location.href = "/login";
+        }
       }
       setLoading(false);
     };
@@ -49,11 +98,11 @@ export default function AdminClassesPage() {
   const saveChanges = async (id) => {
     setLoading(true);
     try {
+      const headers = await fetchAuthHeaders();
       const response = await fetch(`${API_BASE}${id}/`, {
         method: 'PATCH',
-        headers: fetchAuthHeaders(),
+        headers,
         body: JSON.stringify(form),
-        credentials: "include", // ✅ Added credentials
       });
       if (!response.ok) throw new Error('Failed to update class');
       const updatedClass = await response.json();
@@ -79,11 +128,11 @@ export default function AdminClassesPage() {
     };
     setLoading(true);
     try {
+      const headers = await fetchAuthHeaders();
       const response = await fetch(API_BASE, {
         method: 'POST',
-        headers: fetchAuthHeaders(),
+        headers,
         body: JSON.stringify(newClass),
-        credentials: "include", // ✅ Added credentials
       });
       if (!response.ok) throw new Error('Failed to create class');
       const created = await response.json();
@@ -96,14 +145,10 @@ export default function AdminClassesPage() {
   };
 
   const formatDate = (dateString) =>
-    new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-    });
+    new Date(dateString).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   const formatTime = (timeString) =>
-    new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
-      hour: 'numeric', minute: '2-digit', hour12: true
-    });
+    new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
   const filteredClasses = selectedDay
     ? classes.filter(cls => cls.weekday !== null && weekdays[cls.weekday] === selectedDay)
