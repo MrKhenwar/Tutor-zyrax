@@ -7,7 +7,7 @@ export default function AdminClassesPage() {
   const [form, setForm] = useState({});
   const [selectedDay, setSelectedDay] = useState(null);
 
-  const API_BASE = "https://zyrax-xi.vercel.app/zyrax/classes";
+  const API_BASE = "https://zyrax-xi.vercel.app/zyrax/classes/"; // ✅ Added trailing slash
 
   const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -20,7 +20,10 @@ export default function AdminClassesPage() {
     const fetchClasses = async () => {
       setLoading(true);
       try {
-        const response = await fetch(API_BASE, { headers: fetchAuthHeaders() });
+        const response = await fetch(API_BASE, {
+          headers: fetchAuthHeaders(),
+          credentials: "include", // ✅ Added credentials for CSRF/CORS
+        });
         if (!response.ok) throw new Error('Failed to fetch classes');
         const data = await response.json();
         setClasses(data);
@@ -33,7 +36,10 @@ export default function AdminClassesPage() {
     fetchClasses();
   }, []);
 
-  const startEdit = (cls) => setEditing(cls.id) || setForm({ ...cls });
+  const startEdit = (cls) => {
+    setEditing(cls.id);
+    setForm({ ...cls });
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -47,6 +53,7 @@ export default function AdminClassesPage() {
         method: 'PATCH',
         headers: fetchAuthHeaders(),
         body: JSON.stringify(form),
+        credentials: "include", // ✅ Added credentials
       });
       if (!response.ok) throw new Error('Failed to update class');
       const updatedClass = await response.json();
@@ -76,6 +83,7 @@ export default function AdminClassesPage() {
         method: 'POST',
         headers: fetchAuthHeaders(),
         body: JSON.stringify(newClass),
+        credentials: "include", // ✅ Added credentials
       });
       if (!response.ok) throw new Error('Failed to create class');
       const created = await response.json();
@@ -88,16 +96,22 @@ export default function AdminClassesPage() {
   };
 
   const formatDate = (dateString) =>
-    new Date(dateString).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
 
   const formatTime = (timeString) =>
-    new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+      hour: 'numeric', minute: '2-digit', hour12: true
+    });
 
   const filteredClasses = selectedDay
     ? classes.filter(cls => cls.weekday !== null && weekdays[cls.weekday] === selectedDay)
     : classes;
 
-  if (loading) return <div style={{ textAlign: 'center', marginTop: '50px', fontSize: '24px' }}>Loading...</div>;
+  if (loading) return (
+    <div style={{ textAlign: 'center', marginTop: '50px', fontSize: '24px' }}>Loading...</div>
+  );
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px', fontFamily: 'sans-serif', backgroundColor: '#1a1a1a', color: '#fff' }}>
