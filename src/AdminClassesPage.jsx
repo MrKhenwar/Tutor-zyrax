@@ -7,7 +7,7 @@ export default function AdminClassesPage() {
   const [form, setForm] = useState({});
   const [selectedDay, setSelectedDay] = useState(null);
 
-  const API_BASE = "https://zyrax-xi.vercel.app/zyrax/classes/";
+  const API_BASE = "https://zyrax-xi.vercel.app/zyrax/classes";
 
   const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
