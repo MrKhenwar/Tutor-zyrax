@@ -9,8 +9,8 @@ const AdminClassesPage = () => {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  // State for Filtering
-  const [searchQuery, setSearchQuery] = useState("");
+  // State for Filtering (Classes)
+  const [classSearchQuery, setClassSearchQuery] = useState("");
   const [filterDate, setFilterDate] = useState("");
 
   // State for Announcements
@@ -32,8 +32,18 @@ const AdminClassesPage = () => {
     pdf_file: null,
   });
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [userSearchQuery, setUserSearchQuery] = useState(""); // 🔹 separate search for users
 
   const { logout, openDjangoAdmin } = useAuth();
+
+  // Filter users based on search query (by username)
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      if (!userSearchQuery) return true;
+      const username = user.username || "";
+      return username.toLowerCase().includes(userSearchQuery.toLowerCase());
+    });
+  }, [users, userSearchQuery]);
 
   // --- Helper Function to show temporary success messages ---
   const showSuccessMessage = (message) => {
@@ -44,7 +54,6 @@ const AdminClassesPage = () => {
   };
 
   // --- API Functions using the central 'api' instance ---
-
   const fetchClasses = useCallback(async () => {
     setLoading(true);
     try {
@@ -86,7 +95,6 @@ const AdminClassesPage = () => {
   }, [fetchClasses, fetchAnnouncements, fetchUsers]);
 
   // --- Handler Functions ---
-
   const handleAddClass = () => {
     showSuccessMessage("Opening Django Admin to add a new class...");
     openDjangoAdmin('zyrax/zyrax_class/add/');
@@ -169,12 +177,11 @@ const AdminClassesPage = () => {
     return classes.filter((c) => {
       const title = c.title || "";
       const classDate = c.class_date || c.date || "";
-      const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = title.toLowerCase().includes(classSearchQuery.toLowerCase());
       const matchesDate = filterDate ? classDate === filterDate : true;
       return matchesSearch && matchesDate;
     });
-  }, [classes, searchQuery, filterDate]);
-
+  }, [classes, classSearchQuery, filterDate]);
 
   return (
     <div style={styles.page}>
@@ -192,9 +199,7 @@ const AdminClassesPage = () => {
         <p>✨ <strong>Seamless Admin Integration:</strong> Class management is handled via the Django Admin panel for security and consistency. Use the buttons below to add, edit, or delete classes.</p>
       </div>
 
-      {/* Sections Wrapper */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
-
         {/* --- Announcements Section --- */}
         <section style={styles.section}>
           <div style={styles.sectionHeader}>
@@ -247,10 +252,31 @@ const AdminClassesPage = () => {
           {showDietUploadForm && (
              <div style={styles.formContainer}>
                 <input type="text" placeholder="Diet Plan Title" value={dietUpload.title} onChange={(e) => setDietUpload({ ...dietUpload, title: e.target.value })} style={styles.input}/>
+
+                {/* Search input for users */}
+                <input
+                  type="text"
+                  placeholder="🔍 Search users by username..."
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  style={styles.input}
+                />
+
                 <select value={dietUpload.assigned_to_id} onChange={(e) => setDietUpload({ ...dietUpload, assigned_to_id: e.target.value })} style={styles.input}>
                     <option value="">-- Select User --</option>
-                    {users.map((user) => ( <option key={user.id} value={user.id}>{user.full_name || user.username}</option>))}
+                    {filteredUsers.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.username || `User #${user.id}`}
+                      </option>
+                    ))}
                 </select>
+
+                {filteredUsers.length === 0 && userSearchQuery && (
+                  <p style={{color: '#666', fontStyle: 'italic', textAlign: 'center'}}>
+                    No users found matching "{userSearchQuery}"
+                  </p>
+                )}
+
                 <textarea placeholder="Description (optional)" value={dietUpload.description} onChange={(e) => setDietUpload({ ...dietUpload, description: e.target.value })} rows={3} style={styles.textarea}/>
                 <input type="file" accept=".pdf" onChange={(e) => setDietUpload({ ...dietUpload, pdf_file: e.target.files[0] })} style={{...styles.input, padding: '10px'}}/>
                 {uploadProgress > 0 && <progress value={uploadProgress} max="100" style={{width: '100%', marginTop: '10px'}} />}
@@ -268,7 +294,7 @@ const AdminClassesPage = () => {
                 <button onClick={handleAddClass} style={{ ...styles.button, backgroundColor: '#007bff'}}>Add New Class via Admin</button>
             </div>
              <div style={styles.filterContainer}>
-                <input type="text" placeholder="🔍 Search by title..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={styles.input} />
+                <input type="text" placeholder="🔍 Search by title..." value={classSearchQuery} onChange={(e) => setClassSearchQuery(e.target.value)} style={styles.input} />
                 <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} style={styles.input}/>
             </div>
             {loading ? <p>Loading classes...</p> : (
@@ -289,7 +315,6 @@ const AdminClassesPage = () => {
                 </div>
             )}
         </section>
-
       </div>
     </div>
   );
@@ -317,7 +342,7 @@ const styles = {
     listItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '8px', border: '1px solid #dee2e6' },
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' },
     card: { backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '12px', border: '1px solid #eee' },
-    cardActions: { marginTop: '15px', display: 'flex', gap: '10px' },
+    cardActions: { marginTop: '15px', display: 'flex', justifyContent: 'space-between' },
 };
 
 export default AdminClassesPage;
