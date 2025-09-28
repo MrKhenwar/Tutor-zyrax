@@ -34,16 +34,45 @@ const AdminClassesPage = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [userSearchQuery, setUserSearchQuery] = useState(""); // 🔹 separate search for users
 
+  // State for PDF Display
+  const [pdfs, setPdfs] = useState([]);
+  const [pdfsLoading, setPdfsLoading] = useState(false);
+  const [pdfSearchQuery, setPdfSearchQuery] = useState("");
+
   const { logout, openDjangoAdmin } = useAuth();
 
   // Filter users based on search query (by username)
   const filteredUsers = useMemo(() => {
+    if (!userSearchQuery.trim()) {
+      // Show only first 50 users when no search query
+      return users.slice(0, 50);
+    }
+
+    // When searching, show all matching results
     return users.filter(user => {
-      if (!userSearchQuery) return true;
       const username = user.username || "";
-      return username.toLowerCase().includes(userSearchQuery.toLowerCase());
-    });
+      const firstName = user.first_name || "";
+      const lastName = user.last_name || "";
+      const fullName = user.full_name || "";
+      const searchTerm = userSearchQuery.toLowerCase();
+
+      return username.toLowerCase().includes(searchTerm) ||
+             firstName.toLowerCase().includes(searchTerm) ||
+             lastName.toLowerCase().includes(searchTerm) ||
+             fullName.toLowerCase().includes(searchTerm);
+    }).slice(0, 100); // Limit search results to 100 for performance
   }, [users, userSearchQuery]);
+
+  // Filter PDFs based on search query
+  const filteredPdfs = useMemo(() => {
+    return pdfs.filter(pdf => {
+      if (!pdfSearchQuery) return true;
+      const title = pdf.title || "";
+      const username = pdf.assigned_to?.username || "";
+      return title.toLowerCase().includes(pdfSearchQuery.toLowerCase()) ||
+             username.toLowerCase().includes(pdfSearchQuery.toLowerCase());
+    });
+  }, [pdfs, pdfSearchQuery]);
 
   // --- Helper Function to show temporary success messages ---
   const showSuccessMessage = (message) => {
@@ -85,6 +114,18 @@ const AdminClassesPage = () => {
       setUsers(response.data);
     } catch (err) {
       setError(`Failed to load users: ${err.response?.data?.detail || err.message}`);
+    }
+  }, []);
+
+  const fetchPdfs = useCallback(async () => {
+    setPdfsLoading(true);
+    try {
+      const response = await api.get("/zyrax/diet-pdfs/");
+      setPdfs(response.data);
+    } catch (err) {
+      setError(`Failed to load PDFs: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setPdfsLoading(false);
     }
   }, []);
 
@@ -167,7 +208,27 @@ const AdminClassesPage = () => {
       setDietUpload({ title: "", description: "", assigned_to_id: "", pdf_file: null });
       setShowDietUploadForm(false);
     } catch (err) {
-      setError(`Failed to upload diet plan: ${err.response?.data?.detail || err.message}`);
+      console.error('Upload error:', err);
+      let errorMessage = "Failed to upload diet plan";
+
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.response?.data?.details) {
+        // Handle validation errors
+        const details = err.response.data.details;
+        if (typeof details === 'object') {
+          const errorMessages = Object.values(details).flat();
+          errorMessage = `Validation errors: ${errorMessages.join(', ')}`;
+        } else {
+          errorMessage = `Error: ${details}`;
+        }
+      } else if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
     } finally {
         setUploadProgress(0);
     }
@@ -266,10 +327,16 @@ const AdminClassesPage = () => {
                     <option value="">-- Select User --</option>
                     {filteredUsers.map((user) => (
                       <option key={user.id} value={user.id}>
-                        {user.username || `User #${user.id}`}
+                        {user.full_name || user.username || `User #${user.id}`} ({user.username})
                       </option>
                     ))}
                 </select>
+
+                {!userSearchQuery && users.length > 50 && (
+                  <p style={{color: '#666', fontStyle: 'italic', textAlign: 'center', fontSize: '12px'}}>
+                    Showing first 50 users. Use search above to find specific users.
+                  </p>
+                )}
 
                 {filteredUsers.length === 0 && userSearchQuery && (
                   <p style={{color: '#666', fontStyle: 'italic', textAlign: 'center'}}>
@@ -277,8 +344,37 @@ const AdminClassesPage = () => {
                   </p>
                 )}
 
+                {userSearchQuery && filteredUsers.length === 100 && (
+                  <p style={{color: '#666', fontStyle: 'italic', textAlign: 'center', fontSize: '12px'}}>
+                    Showing first 100 matches. Be more specific to see fewer results.
+                  </p>
+                )}
+
                 <textarea placeholder="Description (optional)" value={dietUpload.description} onChange={(e) => setDietUpload({ ...dietUpload, description: e.target.value })} rows={3} style={styles.textarea}/>
-                <input type="file" accept=".pdf" onChange={(e) => setDietUpload({ ...dietUpload, pdf_file: e.target.files[0] })} style={{...styles.input, padding: '10px'}}/>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      // Validate file type
+                      if (file.type !== 'application/pdf') {
+                        setError('Please select a valid PDF file.');
+                        e.target.value = '';
+                        return;
+                      }
+                      // Validate file size (10MB limit)
+                      if (file.size > 10 * 1024 * 1024) {
+                        setError('File size must be less than 10MB.');
+                        e.target.value = '';
+                        return;
+                      }
+                      setError(null);
+                      setDietUpload({ ...dietUpload, pdf_file: file });
+                    }
+                  }}
+                  style={{...styles.input, padding: '10px'}}
+                />
                 {uploadProgress > 0 && <progress value={uploadProgress} max="100" style={{width: '100%', marginTop: '10px'}} />}
                 <button onClick={handleUploadDietPDF} style={{...styles.button, backgroundColor: '#28a745', width: '100%'}} disabled={uploadProgress > 0}>
                     {uploadProgress > 0 ? `Uploading... ${uploadProgress}%` : "Upload Diet Plan"}
