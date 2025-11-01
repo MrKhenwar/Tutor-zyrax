@@ -13,6 +13,17 @@ const AdminClassesPage = () => {
   const [classSearchQuery, setClassSearchQuery] = useState("");
   const [filterDate, setFilterDate] = useState("");
 
+  // State for Class Form
+  const [showClassForm, setShowClassForm] = useState(false);
+  const [editingClassId, setEditingClassId] = useState(null);
+  const [newClass, setNewClass] = useState({
+    title: "",
+    class_date: "",
+    time: "",
+    duration: "",
+    zoom_link: "",
+  });
+
   // State for Announcements
   const [announcements, setAnnouncements] = useState([]);
   const [announcementLoading, setAnnouncementLoading] = useState(false);
@@ -36,10 +47,8 @@ const AdminClassesPage = () => {
 
   // State for PDF Display
   const [pdfs, setPdfs] = useState([]);
-  const [pdfsLoading, setPdfsLoading] = useState(false);
-  const [pdfSearchQuery, setPdfSearchQuery] = useState("");
 
-  const { logout, openDjangoAdmin } = useAuth();
+  const { logout } = useAuth();
 
   // Filter users based on search query (by username)
   const filteredUsers = useMemo(() => {
@@ -62,17 +71,6 @@ const AdminClassesPage = () => {
              fullName.toLowerCase().includes(searchTerm);
     }).slice(0, 100); // Limit search results to 100 for performance
   }, [users, userSearchQuery]);
-
-  // Filter PDFs based on search query
-  const filteredPdfs = useMemo(() => {
-    return pdfs.filter(pdf => {
-      if (!pdfSearchQuery) return true;
-      const title = pdf.title || "";
-      const username = pdf.assigned_to?.username || "";
-      return title.toLowerCase().includes(pdfSearchQuery.toLowerCase()) ||
-             username.toLowerCase().includes(pdfSearchQuery.toLowerCase());
-    });
-  }, [pdfs, pdfSearchQuery]);
 
   // --- Helper Function to show temporary success messages ---
   const showSuccessMessage = (message) => {
@@ -117,18 +115,6 @@ const AdminClassesPage = () => {
     }
   }, []);
 
-  const fetchPdfs = useCallback(async () => {
-    setPdfsLoading(true);
-    try {
-      const response = await api.get("/zyrax/diet-pdfs/");
-      setPdfs(response.data);
-    } catch (err) {
-      setError(`Failed to load PDFs: ${err.response?.data?.detail || err.message}`);
-    } finally {
-      setPdfsLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     fetchClasses();
     fetchAnnouncements();
@@ -137,19 +123,68 @@ const AdminClassesPage = () => {
 
   // --- Handler Functions ---
   const handleAddClass = () => {
-    showSuccessMessage("Opening Django Admin to add a new class...");
-    openDjangoAdmin('zyrax/zyrax_class/add/');
+    setEditingClassId(null);
+    setNewClass({
+      title: "",
+      class_date: "",
+      time: "",
+      duration: "",
+      zoom_link: "",
+    });
+    setShowClassForm(true);
   };
 
-  const handleUpdateClass = (id) => {
-    showSuccessMessage("Opening Django Admin to edit the class...");
-    openDjangoAdmin(`zyrax/zyrax_class/${id}/change/`);
+  const handleUpdateClass = (cls) => {
+    setEditingClassId(cls.id);
+    setNewClass({
+      title: cls.title || "",
+      class_date: cls.class_date || cls.date || "",
+      time: cls.time || "",
+      duration: cls.duration || "",
+      zoom_link: cls.zoom_link || "",
+    });
+    setShowClassForm(true);
   };
 
-  const handleDeleteClass = (id) => {
-    if (window.confirm("This will open Django Admin to delete the class. Are you sure?")) {
-      showSuccessMessage("Opening Django Admin to delete the class...");
-      openDjangoAdmin(`zyrax/zyrax_class/${id}/delete/`);
+  const handleSaveClass = async () => {
+    if (!newClass.title.trim() || !newClass.class_date || !newClass.time) {
+      setError("Please fill in at least title, date, and time for the class.");
+      return;
+    }
+    setError(null);
+    try {
+      if (editingClassId) {
+        // Update existing class
+        await api.patch(`/zyrax/classes/${editingClassId}/`, newClass);
+        showSuccessMessage("Class updated successfully!");
+      } else {
+        // Create new class
+        await api.post("/zyrax/classes/create/", newClass);
+        showSuccessMessage("Class created successfully!");
+      }
+      setNewClass({
+        title: "",
+        class_date: "",
+        time: "",
+        duration: "",
+        zoom_link: "",
+      });
+      setEditingClassId(null);
+      setShowClassForm(false);
+      fetchClasses(); // Refresh the list
+    } catch (err) {
+      setError(`Failed to save class: ${err.response?.data?.detail || err.message}`);
+    }
+  };
+
+  const handleDeleteClass = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this class?")) return;
+    try {
+      await api.delete(`/zyrax/classes/${id}/delete/`);
+      showSuccessMessage("Class deleted successfully!");
+      fetchClasses(); // Refresh the list
+    } catch (err) {
+      setError(`Failed to delete class: ${err.response?.data?.detail || err.message}`);
     }
   };
 
@@ -255,10 +290,6 @@ const AdminClassesPage = () => {
 
       {error && <div style={styles.errorBox}>{error}</div>}
       {successMessage && <div style={styles.successBox}>{successMessage}</div>}
-
-      <div style={styles.noticeBox}>
-        <p>✨ <strong>Seamless Admin Integration:</strong> Class management is handled via the Django Admin panel for security and consistency. Use the buttons below to add, edit, or delete classes.</p>
-      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
         {/* --- Announcements Section --- */}
@@ -387,8 +418,62 @@ const AdminClassesPage = () => {
         <section style={styles.section}>
             <div style={styles.sectionHeader}>
                 <h2>📚 Manage Classes</h2>
-                <button onClick={handleAddClass} style={{ ...styles.button, backgroundColor: '#007bff'}}>Add New Class via Admin</button>
+                <button
+                  onClick={() => {
+                    if (showClassForm) {
+                      setShowClassForm(false);
+                      setEditingClassId(null);
+                    } else {
+                      handleAddClass();
+                    }
+                  }}
+                  style={{ ...styles.button, backgroundColor: showClassForm ? "#6c757d" : "#007bff"}}
+                >
+                  {showClassForm ? "Cancel" : "Add New Class"}
+                </button>
             </div>
+            {showClassForm && (
+              <div style={styles.formContainer}>
+                <input
+                  type="text"
+                  placeholder="Class Title"
+                  value={newClass.title}
+                  onChange={(e) => setNewClass({ ...newClass, title: e.target.value })}
+                  style={styles.input}
+                />
+                <input
+                  type="date"
+                  placeholder="Class Date"
+                  value={newClass.class_date}
+                  onChange={(e) => setNewClass({ ...newClass, class_date: e.target.value })}
+                  style={styles.input}
+                />
+                <input
+                  type="time"
+                  placeholder="Class Time"
+                  value={newClass.time}
+                  onChange={(e) => setNewClass({ ...newClass, time: e.target.value })}
+                  style={styles.input}
+                />
+                <input
+                  type="number"
+                  placeholder="Duration (minutes)"
+                  value={newClass.duration}
+                  onChange={(e) => setNewClass({ ...newClass, duration: e.target.value })}
+                  style={styles.input}
+                />
+                <input
+                  type="url"
+                  placeholder="Zoom Link"
+                  value={newClass.zoom_link}
+                  onChange={(e) => setNewClass({ ...newClass, zoom_link: e.target.value })}
+                  style={styles.input}
+                />
+                <button onClick={handleSaveClass} style={{...styles.button, width: '100%', backgroundColor: '#007bff'}}>
+                  {editingClassId ? "Update Class" : "Create Class"}
+                </button>
+              </div>
+            )}
              <div style={styles.filterContainer}>
                 <input type="text" placeholder="🔍 Search by title..." value={classSearchQuery} onChange={(e) => setClassSearchQuery(e.target.value)} style={styles.input} />
                 <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} style={styles.input}/>
@@ -403,7 +488,7 @@ const AdminClassesPage = () => {
                             <p>⏳ {cls.duration} minutes</p>
                             <p>🔗 <a href={cls.zoom_link} target="_blank" rel="noopener noreferrer">Zoom Link</a></p>
                             <div style={styles.cardActions}>
-                                <button onClick={() => handleUpdateClass(cls.id)} style={{...styles.button, backgroundColor: '#ffc107', color: '#000'}}>Edit</button>
+                                <button onClick={() => handleUpdateClass(cls)} style={{...styles.button, backgroundColor: '#ffc107', color: '#000'}}>Edit</button>
                                 <button onClick={() => handleDeleteClass(cls.id)} style={styles.deleteButton}>Delete</button>
                             </div>
                         </div>
