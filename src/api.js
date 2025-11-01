@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Get the base URL from environment variables, with a fallback for local development
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://127.0.0.1:8000';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://api.zyrax.fit';
 
 const api = axios.create({
   baseURL: API_BASE_URL
