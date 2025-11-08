@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }) => {
 
   const openDjangoAdmin = (path = '') => {
     // This should ideally use an environment variable
-    const adminUrl = `https://api.zyrax.fit/admin/${path}`;
+    const adminUrl = `http://127.0.0.1:8000/admin/${path}`;
     window.open(adminUrl, '_blank', 'noopener,noreferrer');
   };
 

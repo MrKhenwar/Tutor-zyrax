@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import api from "./api"; // Import the central api instance
 
@@ -49,6 +50,7 @@ const AdminClassesPage = () => {
   const [pdfs, setPdfs] = useState([]);
 
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
   // Filter users based on search query (by username)
   const filteredUsers = useMemo(() => {
@@ -108,10 +110,11 @@ const AdminClassesPage = () => {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const response = await api.get("/zyrax/diet-pdfs/users/");
+      const response = await api.get("/zyrax/admin/users/");
       setUsers(response.data);
     } catch (err) {
-      setError(`Failed to load users: ${err.response?.data?.detail || err.message}`);
+      console.error("Failed to load users:", err);
+      // Don't show error to user as this is not critical for the main page
     }
   }, []);
 
@@ -283,9 +286,14 @@ const AdminClassesPage = () => {
     <div style={styles.page}>
       <header style={styles.header}>
         <h1 style={styles.title}>🎓 Admin Dashboard</h1>
-        <button onClick={logout} style={styles.logoutButton}>
-          Logout
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={() => navigate('/subscribers')} style={styles.subscribersButton}>
+            👥 Manage Subscribers
+          </button>
+          <button onClick={logout} style={styles.logoutButton}>
+            Logout
+          </button>
+        </div>
       </header>
 
       {error && <div style={styles.errorBox}>{error}</div>}
@@ -506,6 +514,7 @@ const styles = {
     page: { padding: '40px', fontFamily: 'Arial, sans-serif', backgroundColor: '#f4f7f6', minHeight: '100vh'},
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
     title: { color: '#333', margin: 0 },
+    subscribersButton: { padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' },
     logoutButton: { padding: '10px 20px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' },
     errorBox: { color: '#721c24', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' },
     successBox: { color: '#155724', backgroundColor: '#d4edda', border: '1px solid #c3e6cb', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' },
