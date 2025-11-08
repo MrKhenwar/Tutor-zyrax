@@ -61,8 +61,9 @@ const SubscriberManagement = () => {
   const fetchSubscribers = useCallback(async () => {
     setLoading(true);
     setError(null);
+    const baseUrl = activeTab === "zyrax" ? "/zyrax" : "/zylo";
     try {
-      const response = await api.get(`${getBaseUrl()}/admin/subscriptions/`);
+      const response = await api.get(`${baseUrl}/admin/subscriptions/`);
       console.log('Fetched subscribers:', response.data);
       setSubscribers(response.data);
     } catch (err) {
@@ -76,8 +77,9 @@ const SubscriberManagement = () => {
 
   // Fetch offers
   const fetchOffers = useCallback(async () => {
+    const baseUrl = activeTab === "zyrax" ? "/zyrax" : "/zylo";
     try {
-      const response = await api.get(`${getBaseUrl()}/admin/offers/`);
+      const response = await api.get(`${baseUrl}/admin/offers/`);
       setOffers(response.data);
     } catch (err) {
       console.error("Failed to fetch offers:", err);
@@ -86,8 +88,9 @@ const SubscriberManagement = () => {
 
   // Fetch users
   const fetchUsers = useCallback(async () => {
+    const baseUrl = activeTab === "zyrax" ? "/zyrax" : "/zylo";
     try {
-      const response = await api.get(`${getBaseUrl()}/admin/users/`);
+      const response = await api.get(`${baseUrl}/admin/users/`);
       setUsers(response.data);
     } catch (err) {
       console.error("Failed to fetch users:", err);
@@ -114,6 +117,7 @@ const SubscriberManagement = () => {
     }, 300);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   // Filter users for search

@@ -46,9 +46,6 @@ const AdminClassesPage = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [userSearchQuery, setUserSearchQuery] = useState(""); // 🔹 separate search for users
 
-  // State for PDF Display
-  const [pdfs, setPdfs] = useState([]);
-
   const { logout } = useAuth();
   const navigate = useNavigate();
 
