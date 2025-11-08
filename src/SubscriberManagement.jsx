@@ -30,11 +30,23 @@ const SubscriberManagement = () => {
   // State for Add/Edit Subscriber Form
   const [showSubscriberForm, setShowSubscriberForm] = useState(false);
   const [editingSubscriberId, setEditingSubscriberId] = useState(null);
+  const [isCreatingNewUser, setIsCreatingNewUser] = useState(false);
   const [subscriberForm, setSubscriberForm] = useState({
     user_id: "",
     offer_id: "",
     amount_paid: "",
     start_date: new Date().toISOString().split('T')[0], // Today's date
+    end_date: "",
+  });
+
+  // State for new user creation
+  const [newUserForm, setNewUserForm] = useState({
+    username: "",
+    first_name: "",
+    last_name: "",
+    phone_number: "",
+    password: "",
+    confirm_password: "",
   });
 
   // State for Password Change Modal
@@ -154,11 +166,21 @@ const SubscriberManagement = () => {
   // Handle add new subscriber
   const handleAddSubscriber = () => {
     setEditingSubscriberId(null);
+    setIsCreatingNewUser(false);
     setSubscriberForm({
       user_id: "",
       offer_id: "",
       amount_paid: "",
       start_date: new Date().toISOString().split('T')[0],
+      end_date: "",
+    });
+    setNewUserForm({
+      username: "",
+      first_name: "",
+      last_name: "",
+      phone_number: "",
+      password: "",
+      confirm_password: "",
     });
     setShowSubscriberForm(true);
   };
@@ -166,18 +188,42 @@ const SubscriberManagement = () => {
   // Handle edit subscriber
   const handleEditSubscriber = (sub) => {
     setEditingSubscriberId(sub.id);
+    setIsCreatingNewUser(false);
     setSubscriberForm({
       user_id: sub.user.id,
       offer_id: sub.offer.id,
       amount_paid: sub.amount_paid,
       start_date: sub.start_date.split('T')[0],
+      end_date: sub.end_date.split('T')[0],
     });
     setShowSubscriberForm(true);
   };
 
   // Handle save subscriber (create or update)
   const handleSaveSubscriber = async () => {
-    if (!subscriberForm.user_id || !subscriberForm.offer_id || !subscriberForm.amount_paid) {
+    // Validation for creating new user
+    if (!editingSubscriberId && isCreatingNewUser) {
+      if (!newUserForm.username || !newUserForm.phone_number || !newUserForm.password) {
+        setError("Please fill in username, phone number, and password for the new user");
+        return;
+      }
+      if (newUserForm.password !== newUserForm.confirm_password) {
+        setError("Passwords do not match");
+        return;
+      }
+      if (newUserForm.password.length < 6) {
+        setError("Password must be at least 6 characters");
+        return;
+      }
+    }
+
+    // Validation for selecting existing user or editing
+    if (!isCreatingNewUser && !subscriberForm.user_id) {
+      setError("Please select a user");
+      return;
+    }
+
+    if (!subscriberForm.offer_id || !subscriberForm.amount_paid) {
       setError("Please fill in all required fields");
       return;
     }
@@ -185,22 +231,63 @@ const SubscriberManagement = () => {
     setError(null);
     try {
       if (editingSubscriberId) {
-        // Update existing
-        await api.put(`${getBaseUrl()}/admin/subscriptions/${editingSubscriberId}/update/`, {
+        // Update existing subscription
+        const updateData = {
           offer_id: subscriberForm.offer_id,
           amount_paid: subscriberForm.amount_paid,
           start_date: subscriberForm.start_date,
-        });
+        };
+
+        // Include end_date if provided
+        if (subscriberForm.end_date) {
+          updateData.end_date = subscriberForm.end_date;
+        }
+
+        await api.put(`${getBaseUrl()}/admin/subscriptions/${editingSubscriberId}/update/`, updateData);
         showSuccessMessage("Subscription updated successfully!");
       } else {
-        // Create new
-        await api.post(`${getBaseUrl()}/admin/subscriptions/create/`, subscriberForm);
+        let userId = subscriberForm.user_id;
+
+        // Create new user if in "create new user" mode
+        if (isCreatingNewUser) {
+          try {
+            const newUserResponse = await api.post(`${getBaseUrl()}/admin/register/`, {
+              phone_number: newUserForm.phone_number,
+              first_name: newUserForm.first_name,
+              last_name: newUserForm.last_name,
+              password: newUserForm.password,
+            });
+
+            // Get the new user ID from the response
+            userId = newUserResponse.data.user_id;
+
+            if (!userId) {
+              // If user_id is not in response, fetch users again and find by phone number
+              const usersResponse = await api.get(`${getBaseUrl()}/admin/users/`);
+              const newUser = usersResponse.data.find(u => u.phone_number === newUserForm.phone_number);
+              userId = newUser?.id;
+            }
+
+            showSuccessMessage(`New user created: ${newUserForm.phone_number}`);
+          } catch (userErr) {
+            setError(`Failed to create user: ${userErr.response?.data?.error || userErr.response?.data?.detail || userErr.message}`);
+            return;
+          }
+        }
+
+        // Create subscription
+        await api.post(`${getBaseUrl()}/admin/subscriptions/create/`, {
+          ...subscriberForm,
+          user_id: userId,
+        });
         showSuccessMessage("Subscription created successfully!");
       }
+
       setShowSubscriberForm(false);
       fetchSubscribers();
+      fetchUsers(); // Refresh users list if new user was created
     } catch (err) {
-      setError(`Failed to save subscription: ${err.response?.data?.error || err.message}`);
+      setError(`Failed to save subscription: ${err.response?.data?.error || err.response?.data?.detail || err.message}`);
     }
   };
 
@@ -459,33 +546,120 @@ const SubscriberManagement = () => {
             <div style={styles.modalBody}>
               {!editingSubscriberId && (
                 <>
-                  <label style={styles.label}>Search User *</label>
-                  <input
-                    type="text"
-                    placeholder="🔍 Search users by username..."
-                    value={userSearchQuery}
-                    onChange={(e) => setUserSearchQuery(e.target.value)}
-                    style={styles.input}
-                  />
-                  <label style={styles.label}>Select User *</label>
-                  <select
-                    value={subscriberForm.user_id}
-                    onChange={(e) =>
-                      setSubscriberForm({ ...subscriberForm, user_id: e.target.value })
-                    }
-                    style={styles.input}
-                  >
-                    <option value="">-- Select User --</option>
-                    {filteredUsers.map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {user.full_name || user.username} ({user.username})
-                      </option>
-                    ))}
-                  </select>
-                  {!userSearchQuery && users.length > 50 && (
-                    <small style={{ color: '#666', display: 'block', marginBottom: '10px' }}>
-                      Showing first 50 users. Use search to find more.
-                    </small>
+                  {/* Toggle between Select User and Create New User */}
+                  <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => setIsCreatingNewUser(false)}
+                      style={{
+                        ...styles.button,
+                        flex: 1,
+                        backgroundColor: !isCreatingNewUser ? '#007bff' : '#6c757d'
+                      }}
+                    >
+                      Select Existing User
+                    </button>
+                    <button
+                      onClick={() => setIsCreatingNewUser(true)}
+                      style={{
+                        ...styles.button,
+                        flex: 1,
+                        backgroundColor: isCreatingNewUser ? '#28a745' : '#6c757d'
+                      }}
+                    >
+                      Create New User
+                    </button>
+                  </div>
+
+                  {isCreatingNewUser ? (
+                    /* New User Form */
+                    <>
+                      <label style={styles.label}>Phone Number (Username) *</label>
+                      <input
+                        type="text"
+                        placeholder="10-digit phone number"
+                        value={newUserForm.phone_number}
+                        onChange={(e) =>
+                          setNewUserForm({ ...newUserForm, phone_number: e.target.value, username: e.target.value })
+                        }
+                        style={styles.input}
+                      />
+
+                      <label style={styles.label}>First Name</label>
+                      <input
+                        type="text"
+                        placeholder="First Name"
+                        value={newUserForm.first_name}
+                        onChange={(e) =>
+                          setNewUserForm({ ...newUserForm, first_name: e.target.value })
+                        }
+                        style={styles.input}
+                      />
+
+                      <label style={styles.label}>Last Name</label>
+                      <input
+                        type="text"
+                        placeholder="Last Name"
+                        value={newUserForm.last_name}
+                        onChange={(e) =>
+                          setNewUserForm({ ...newUserForm, last_name: e.target.value })
+                        }
+                        style={styles.input}
+                      />
+
+                      <label style={styles.label}>Password *</label>
+                      <input
+                        type="password"
+                        placeholder="At least 6 characters"
+                        value={newUserForm.password}
+                        onChange={(e) =>
+                          setNewUserForm({ ...newUserForm, password: e.target.value })
+                        }
+                        style={styles.input}
+                      />
+
+                      <label style={styles.label}>Confirm Password *</label>
+                      <input
+                        type="password"
+                        placeholder="Re-enter password"
+                        value={newUserForm.confirm_password}
+                        onChange={(e) =>
+                          setNewUserForm({ ...newUserForm, confirm_password: e.target.value })
+                        }
+                        style={styles.input}
+                      />
+                    </>
+                  ) : (
+                    /* Select Existing User Form */
+                    <>
+                      <label style={styles.label}>Search User *</label>
+                      <input
+                        type="text"
+                        placeholder="🔍 Search users by username..."
+                        value={userSearchQuery}
+                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                        style={styles.input}
+                      />
+                      <label style={styles.label}>Select User *</label>
+                      <select
+                        value={subscriberForm.user_id}
+                        onChange={(e) =>
+                          setSubscriberForm({ ...subscriberForm, user_id: e.target.value })
+                        }
+                        style={styles.input}
+                      >
+                        <option value="">-- Select User --</option>
+                        {filteredUsers.map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.full_name || user.username} ({user.username})
+                          </option>
+                        ))}
+                      </select>
+                      {!userSearchQuery && users.length > 50 && (
+                        <small style={{ color: '#666', display: 'block', marginBottom: '10px' }}>
+                          Showing first 50 users. Use search to find more.
+                        </small>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -523,6 +697,16 @@ const SubscriberManagement = () => {
                 value={subscriberForm.start_date}
                 onChange={(e) =>
                   setSubscriberForm({ ...subscriberForm, start_date: e.target.value })
+                }
+                style={styles.input}
+              />
+
+              <label style={styles.label}>End Date (Optional - leave blank to auto-calculate)</label>
+              <input
+                type="date"
+                value={subscriberForm.end_date}
+                onChange={(e) =>
+                  setSubscriberForm({ ...subscriberForm, end_date: e.target.value })
                 }
                 style={styles.input}
               />
