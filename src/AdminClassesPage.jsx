@@ -2,6 +2,52 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import api from "./api"; // Import the central api instance
+import AttendanceManagement from "./AttendanceManagement";
+
+// Timezone utility functions
+const convertISTToLocal = (istTimeString, dateString = null) => {
+  if (!istTimeString) return "";
+
+  // Create a date object in IST (UTC+5:30)
+  const date = dateString ? new Date(dateString) : new Date();
+  const [hours, minutes] = istTimeString.split(':');
+
+  // Set time in IST
+  const istDate = new Date(date);
+  istDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+  // IST is UTC+5:30, so subtract 5.5 hours to get UTC
+  const utcDate = new Date(istDate.getTime() - (5.5 * 60 * 60 * 1000));
+
+  // Convert to local timezone
+  const localHours = utcDate.getHours().toString().padStart(2, '0');
+  const localMinutes = utcDate.getMinutes().toString().padStart(2, '0');
+
+  return `${localHours}:${localMinutes}`;
+};
+
+const convertLocalToIST = (localTimeString) => {
+  if (!localTimeString) return "";
+
+  const [hours, minutes] = localTimeString.split(':');
+  const localDate = new Date();
+  localDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+  // Convert to UTC
+  const utcDate = new Date(localDate.getTime());
+
+  // Add 5.5 hours to get IST
+  const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+
+  const istHours = istDate.getHours().toString().padStart(2, '0');
+  const istMinutes = istDate.getMinutes().toString().padStart(2, '0');
+
+  return `${istHours}:${istMinutes}`;
+};
+
+const getUserTimezone = () => {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+};
 
 const AdminClassesPage = () => {
   // State for Classes
@@ -139,7 +185,7 @@ const AdminClassesPage = () => {
     setNewClass({
       title: cls.title || "",
       class_date: cls.class_date || cls.date || "",
-      time: cls.time || "",
+      time: convertISTToLocal(cls.time, cls.class_date || cls.date) || "",
       duration: cls.duration || "",
       zoom_link: cls.zoom_link || "",
     });
@@ -153,13 +199,19 @@ const AdminClassesPage = () => {
     }
     setError(null);
     try {
+      // Convert local time to IST before sending to backend
+      const classData = {
+        ...newClass,
+        time: convertLocalToIST(newClass.time)
+      };
+
       if (editingClassId) {
         // Update existing class
-        await api.patch(`/zyrax/classes/${editingClassId}/`, newClass);
+        await api.patch(`/zyrax/classes/${editingClassId}/`, classData);
         showSuccessMessage("Class updated successfully!");
       } else {
         // Create new class
-        await api.post("/zyrax/classes/create/", newClass);
+        await api.post("/zyrax/classes/create/", classData);
         showSuccessMessage("Class created successfully!");
       }
       setNewClass({
@@ -278,6 +330,26 @@ const AdminClassesPage = () => {
       return matchesSearch && matchesDate;
     });
   }, [classes, classSearchQuery, filterDate]);
+
+  // Handle class join tracking
+  const handleJoinClass = async (classId, zoomLink) => {
+    try {
+      // Log the join to backend
+      await api.post("/zyrax/classes/join/", { class_id: classId });
+
+      // Mark attendance
+      await api.post("/zyrax/attendance/mark_attendance/", { class_id: classId });
+
+      // Open Zoom link
+      window.open(zoomLink, '_blank');
+
+      showSuccessMessage("Class join logged successfully!");
+    } catch (err) {
+      console.error("Failed to log class join:", err);
+      // Still open the link even if logging fails
+      window.open(zoomLink, '_blank');
+    }
+  };
 
   return (
     <div style={styles.page}>
@@ -419,6 +491,9 @@ const AdminClassesPage = () => {
           )}
         </section>
 
+        {/* --- Attendance & Analytics Section --- */}
+        <AttendanceManagement />
+
         {/* --- Classes Section --- */}
         <section style={styles.section}>
             <div style={styles.sectionHeader}>
@@ -453,13 +528,16 @@ const AdminClassesPage = () => {
                   onChange={(e) => setNewClass({ ...newClass, class_date: e.target.value })}
                   style={styles.input}
                 />
-                <input
-                  type="time"
-                  placeholder="Class Time"
-                  value={newClass.time}
-                  onChange={(e) => setNewClass({ ...newClass, time: e.target.value })}
-                  style={styles.input}
-                />
+                <div style={{display: 'flex', flexDirection: 'column', gap: '5px'}}>
+                  <input
+                    type="time"
+                    placeholder="Class Time"
+                    value={newClass.time}
+                    onChange={(e) => setNewClass({ ...newClass, time: e.target.value })}
+                    style={styles.input}
+                  />
+                  <small style={{color: '#666', fontStyle: 'italic'}}>Enter time in your timezone: {getUserTimezone()}</small>
+                </div>
                 <input
                   type="number"
                   placeholder="Duration (minutes)"
@@ -489,9 +567,16 @@ const AdminClassesPage = () => {
                         <div key={cls.id} style={styles.card}>
                             <h3 style={{ marginBottom: "10px" }}>{cls.title}</h3>
                             <p>📅 {cls.class_date || cls.date}</p>
-                            <p>⏰ {cls.time}</p>
+                            <p>⏰ {convertISTToLocal(cls.time, cls.class_date || cls.date)} <small style={{color: '#666'}}>({getUserTimezone()})</small></p>
                             <p>⏳ {cls.duration} minutes</p>
-                            <p>🔗 <a href={cls.zoom_link} target="_blank" rel="noopener noreferrer">Zoom Link</a></p>
+                            <p>
+                              🔗 <button
+                                onClick={() => handleJoinClass(cls.id, cls.zoom_link)}
+                                style={styles.joinButton}
+                              >
+                                Join Class
+                              </button>
+                            </p>
                             <div style={styles.cardActions}>
                                 <button onClick={() => handleUpdateClass(cls)} style={{...styles.button, backgroundColor: '#ffc107', color: '#000'}}>Edit</button>
                                 <button onClick={() => handleDeleteClass(cls.id)} style={styles.deleteButton}>Delete</button>
@@ -530,6 +615,17 @@ const styles = {
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' },
     card: { backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '12px', border: '1px solid #eee' },
     cardActions: { marginTop: '15px', display: 'flex', justifyContent: 'space-between' },
+    joinButton: {
+      padding: '8px 16px',
+      backgroundColor: '#28a745',
+      color: 'white',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: 'bold',
+      transition: 'background-color 0.3s'
+    },
 };
 
 export default AdminClassesPage;
