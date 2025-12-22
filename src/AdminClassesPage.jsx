@@ -355,9 +355,12 @@ const AdminClassesPage = () => {
     <div style={styles.page}>
       <header style={styles.header}>
         <h1 style={styles.title}>🎓 Admin Dashboard</h1>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button onClick={() => navigate('/subscribers')} style={styles.subscribersButton}>
             👥 Manage Subscribers
+          </button>
+          <button onClick={() => navigate('/extend-subscription')} style={styles.extensionButton}>
+            ⏰ Extend Subscription
           </button>
           <button onClick={logout} style={styles.logoutButton}>
             Logout
@@ -596,8 +599,9 @@ const styles = {
     page: { padding: '40px', fontFamily: 'Arial, sans-serif', backgroundColor: '#f4f7f6', minHeight: '100vh'},
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
     title: { color: '#333', margin: 0 },
-    subscribersButton: { padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' },
-    logoutButton: { padding: '10px 20px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' },
+    subscribersButton: { padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' },
+    extensionButton: { padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' },
+    logoutButton: { padding: '10px 20px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', whiteSpace: 'nowrap' },
     errorBox: { color: '#721c24', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' },
     successBox: { color: '#155724', backgroundColor: '#d4edda', border: '1px solid #c3e6cb', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' },
     noticeBox: { backgroundColor: '#e2f3ff', border: '1px solid #b8e2ff', borderRadius: '8px', padding: '16px', marginBottom: '30px', textAlign: 'center', color: '#004085' },

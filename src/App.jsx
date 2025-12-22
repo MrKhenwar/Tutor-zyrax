@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AdminClassesPage from "./AdminClassesPage";
 import LoginPage from "./LoginPage";
 import SubscriberManagement from "./SubscriberManagement";
+import SubscriptionExtension from "./SubscriptionExtension";
 import { AuthProvider } from "./AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -21,6 +22,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <SubscriberManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/extend-subscription"
+            element={
+              <ProtectedRoute>
+                <SubscriptionExtension />
               </ProtectedRoute>
             }
           />
