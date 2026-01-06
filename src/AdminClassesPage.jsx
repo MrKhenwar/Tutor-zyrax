@@ -78,6 +78,7 @@ const AdminClassesPage = () => {
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: "",
     message: "",
+    platform: "zyrax", // Default to zyrax
   });
 
   // State for Diet Uploads
@@ -249,7 +250,7 @@ const AdminClassesPage = () => {
     try {
       await api.post("/zyrax/announcements/create/", newAnnouncement);
       showSuccessMessage("Announcement created successfully!");
-      setNewAnnouncement({ title: "", message: "" });
+      setNewAnnouncement({ title: "", message: "", platform: "zyrax" });
       setShowAnnouncementForm(false);
       fetchAnnouncements(); // Refresh the list
     } catch (err) {
@@ -387,6 +388,21 @@ const AdminClassesPage = () => {
             <div style={styles.formContainer}>
               <input type="text" placeholder="Announcement Title" value={newAnnouncement.title} onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })} style={styles.input}/>
               <textarea placeholder="Announcement Message" value={newAnnouncement.message} onChange={(e) => setNewAnnouncement({ ...newAnnouncement, message: e.target.value })} rows={4} style={styles.textarea}/>
+
+              <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                <label style={{fontWeight: 'bold', color: '#333', fontSize: '14px'}}>Platform:</label>
+                <select
+                  value={newAnnouncement.platform}
+                  onChange={(e) => setNewAnnouncement({ ...newAnnouncement, platform: e.target.value })}
+                  style={styles.input}
+                >
+                  <option value="zyrax">Zyrax Only</option>
+                  <option value="zylo">Zylo Only</option>
+                  <option value="both">Both Zyrax and Zylo</option>
+                </select>
+                <small style={{color: '#666', fontStyle: 'italic'}}>Select which platform(s) this announcement should appear on</small>
+              </div>
+
               <button onClick={handleCreateAnnouncement} style={{...styles.button, width: '100%'}}>Post Announcement</button>
             </div>
           )}
@@ -396,7 +412,19 @@ const AdminClassesPage = () => {
                 announcements.map(ann => (
                   <div key={ann.id} style={styles.listItem}>
                     <div>
-                      <h4 style={{ margin: 0 }}>{ann.title}</h4>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px'}}>
+                        <h4 style={{ margin: 0 }}>{ann.title}</h4>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          backgroundColor: ann.platform === 'zyrax' ? '#e3f2fd' : ann.platform === 'zylo' ? '#fff3e0' : '#f3e5f5',
+                          color: ann.platform === 'zyrax' ? '#1976d2' : ann.platform === 'zylo' ? '#f57c00' : '#7b1fa2',
+                        }}>
+                          {ann.platform_display || ann.platform}
+                        </span>
+                      </div>
                       <p style={{ margin: '5px 0 0', color: '#555' }}>{ann.message}</p>
                     </div>
                     <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
