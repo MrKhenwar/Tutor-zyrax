@@ -363,6 +363,9 @@ const AdminClassesPage = () => {
           <button onClick={() => navigate('/extend-subscription')} style={styles.extensionButton}>
             ⏰ Extend Subscription
           </button>
+          <button onClick={() => navigate('/everyday-stats')} style={styles.statsButton}>
+            📊 Everyday Stats
+          </button>
           <button onClick={logout} style={styles.logoutButton}>
             Logout
           </button>
@@ -629,6 +632,7 @@ const styles = {
     title: { color: '#333', margin: 0 },
     subscribersButton: { padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' },
     extensionButton: { padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' },
+    statsButton: { padding: '10px 20px', backgroundColor: '#6f42c1', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' },
     logoutButton: { padding: '10px 20px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', whiteSpace: 'nowrap' },
     errorBox: { color: '#721c24', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' },
     successBox: { color: '#155724', backgroundColor: '#d4edda', border: '1px solid #c3e6cb', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' },

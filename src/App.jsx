@@ -5,6 +5,7 @@ import AdminClassesPage from "./AdminClassesPage";
 import LoginPage from "./LoginPage";
 import SubscriberManagement from "./SubscriberManagement";
 import SubscriptionExtension from "./SubscriptionExtension";
+import EverydayStats from "./EverydayStats";
 import { AuthProvider } from "./AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -30,6 +31,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <SubscriptionExtension />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/everyday-stats"
+            element={
+              <ProtectedRoute>
+                <EverydayStats />
               </ProtectedRoute>
             }
           />
