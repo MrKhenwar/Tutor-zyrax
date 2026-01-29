@@ -6,6 +6,8 @@ import LoginPage from "./LoginPage";
 import SubscriberManagement from "./SubscriberManagement";
 import SubscriptionExtension from "./SubscriptionExtension";
 import EverydayStats from "./EverydayStats";
+import ClassWiseStats from "./ClassWiseStats";
+import DataDiagnostics from "./DataDiagnostics";
 import { AuthProvider } from "./AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -39,6 +41,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <EverydayStats />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/class-wise-stats"
+            element={
+              <ProtectedRoute>
+                <ClassWiseStats />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/diagnostics"
+            element={
+              <ProtectedRoute>
+                <DataDiagnostics />
               </ProtectedRoute>
             }
           />
