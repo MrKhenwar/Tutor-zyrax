@@ -601,19 +601,61 @@ const AdminClassesPage = () => {
             {loading ? <p>Loading classes...</p> : (
                 <div style={styles.grid}>
                     {filteredClasses.length > 0 ? filteredClasses.map((cls) => (
-                        <div key={cls.id} style={styles.card}>
-                            <h3 style={{ marginBottom: "10px" }}>{cls.title}</h3>
+                        <div key={cls.id} style={{
+                          ...styles.card,
+                          ...(cls.is_cancelled ? {
+                            borderLeft: '4px solid #dc3545',
+                            opacity: 0.7,
+                            backgroundColor: '#fff5f5'
+                          } : {})
+                        }}>
+                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: "10px"}}>
+                              <h3 style={{ margin: 0 }}>{cls.title}</h3>
+                              {cls.is_cancelled && (
+                                <span style={{
+                                  padding: '4px 12px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: 'bold',
+                                  backgroundColor: '#dc3545',
+                                  color: 'white',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  ❌ CANCELLED
+                                </span>
+                              )}
+                            </div>
                             <p>📅 {cls.class_date || cls.date}</p>
                             <p>⏰ {convertISTToLocal(cls.time, cls.class_date || cls.date)} <small style={{color: '#666'}}>({getUserTimezone()})</small></p>
                             <p>⏳ {cls.duration} minutes</p>
                             <p>
                               🔗 <button
                                 onClick={() => handleJoinClass(cls.id, cls.zoom_link)}
-                                style={styles.joinButton}
+                                disabled={cls.is_cancelled}
+                                style={{
+                                  ...styles.joinButton,
+                                  ...(cls.is_cancelled ? {
+                                    backgroundColor: '#6c757d',
+                                    cursor: 'not-allowed',
+                                    opacity: 0.6
+                                  } : {})
+                                }}
                               >
-                                Join Class
+                                {cls.is_cancelled ? 'Class Cancelled' : 'Join Class'}
                               </button>
                             </p>
+                            {cls.is_cancelled && cls.cancelled_reason && (
+                              <p style={{
+                                fontSize: '13px',
+                                color: '#721c24',
+                                backgroundColor: '#f8d7da',
+                                padding: '8px',
+                                borderRadius: '6px',
+                                marginTop: '10px'
+                              }}>
+                                <strong>Reason:</strong> {cls.cancelled_reason}
+                              </p>
+                            )}
                             <div style={styles.cardActions}>
                                 <button onClick={() => handleUpdateClass(cls)} style={{...styles.button, backgroundColor: '#ffc107', color: '#000'}}>Edit</button>
                                 <button onClick={() => handleDeleteClass(cls.id)} style={styles.deleteButton}>Delete</button>

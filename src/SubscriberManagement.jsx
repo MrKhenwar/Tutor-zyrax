@@ -306,6 +306,36 @@ const SubscriberManagement = () => {
     }
   };
 
+  // Handle put subscription on hold
+  const handlePutOnHold = async (id, username) => {
+    if (!window.confirm(`Are you sure you want to put ${username}'s subscription on hold?`)) {
+      return;
+    }
+
+    try {
+      await api.post(`${getBaseUrl()}/admin/subscriptions/${id}/put-on-hold/`);
+      showSuccessMessage("Subscription put on hold successfully!");
+      fetchSubscribers();
+    } catch (err) {
+      setError(`Failed to put on hold: ${err.response?.data?.error || err.message}`);
+    }
+  };
+
+  // Handle remove subscription from hold
+  const handleRemoveFromHold = async (id, username) => {
+    if (!window.confirm(`Are you sure you want to remove ${username}'s subscription from hold? This will extend their subscription by the number of days they were on hold.`)) {
+      return;
+    }
+
+    try {
+      const response = await api.post(`${getBaseUrl()}/admin/subscriptions/${id}/remove-from-hold/`);
+      showSuccessMessage(`Subscription removed from hold! Extended by ${response.data.days_on_hold} days.`);
+      fetchSubscribers();
+    } catch (err) {
+      setError(`Failed to remove from hold: ${err.response?.data?.error || err.message}`);
+    }
+  };
+
   // Handle show password modal
   const handleShowPasswordModal = (user) => {
     setPasswordForm({
@@ -490,11 +520,11 @@ const SubscriberManagement = () => {
                         <span
                           style={{
                             ...styles.badge,
-                            backgroundColor: sub.is_active ? '#d4edda' : '#f8d7da',
-                            color: sub.is_active ? '#155724' : '#721c24',
+                            backgroundColor: sub.is_on_hold ? '#ffc107' : (sub.is_active ? '#d4edda' : '#f8d7da'),
+                            color: sub.is_on_hold ? '#856404' : (sub.is_active ? '#155724' : '#721c24'),
                           }}
                         >
-                          {sub.is_active ? 'Active' : 'Inactive'}
+                          {sub.is_on_hold ? 'On Hold' : (sub.is_active ? 'Active' : 'Inactive')}
                         </span>
                       </td>
                       <td style={styles.td}>
@@ -506,13 +536,31 @@ const SubscriberManagement = () => {
                           >
                             ✏️
                           </button>
-                          {sub.is_active && (
+                          {sub.is_active && !sub.is_on_hold && (
                             <button
                               onClick={() => handleDeactivate(sub.id, sub.user.username)}
                               style={{ ...styles.smallButton, backgroundColor: '#dc3545' }}
                               title="Deactivate"
                             >
                               ❌
+                            </button>
+                          )}
+                          {sub.is_active && !sub.is_on_hold && (
+                            <button
+                              onClick={() => handlePutOnHold(sub.id, sub.user.username)}
+                              style={{ ...styles.smallButton, backgroundColor: '#fd7e14' }}
+                              title="Put on Hold"
+                            >
+                              ⏸️
+                            </button>
+                          )}
+                          {sub.is_on_hold && (
+                            <button
+                              onClick={() => handleRemoveFromHold(sub.id, sub.user.username)}
+                              style={{ ...styles.smallButton, backgroundColor: '#28a745' }}
+                              title="Remove from Hold"
+                            >
+                              ▶️
                             </button>
                           )}
                           <button
