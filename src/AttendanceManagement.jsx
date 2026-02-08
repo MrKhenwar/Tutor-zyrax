@@ -48,7 +48,7 @@ const AttendanceManagement = () => {
         year: selectedYear
       };
 
-      const response = await api.get(`/zyrax/attendance/search/`, { params });
+      const response = await api.get(`/zyrax/attendance/search-combined/`, { params });
       setSearchResults(response.data);
     } catch (err) {
       setError(`Search failed: ${err.response?.data?.detail || err.message}`);
@@ -354,6 +354,14 @@ const AttendanceManagement = () => {
                 <div style={styles.statValue}>{searchResults.total_joins}</div>
                 <div style={styles.statLabel}>Total Attendance Days</div>
               </div>
+              <div style={{...styles.statCard, backgroundColor: '#e3f2fd'}}>
+                <div style={styles.statValue}>{searchResults.zyrax_attendance_count || 0}</div>
+                <div style={styles.statLabel}>Zyrax Attendance</div>
+              </div>
+              <div style={{...styles.statCard, backgroundColor: '#f3e5f5'}}>
+                <div style={styles.statValue}>{searchResults.zylo_attendance_count || 0}</div>
+                <div style={styles.statLabel}>Zylo Attendance</div>
+              </div>
               {searchResults.most_joined_class ? (
                 <div style={{...styles.statCard, backgroundColor: '#fff3e0'}}>
                   <div style={{fontSize: '18px', fontWeight: 'bold', color: '#333', marginBottom: '8px'}}>
@@ -442,6 +450,7 @@ const AttendanceManagement = () => {
                     <thead>
                       <tr>
                         <th style={styles.th}>Date</th>
+                        <th style={styles.th}>Platform</th>
                         <th style={styles.th}>Class</th>
                         <th style={styles.th}>Time</th>
                       </tr>
@@ -451,6 +460,19 @@ const AttendanceManagement = () => {
                         <tr key={record.id} style={styles.tableRowEven}>
                           <td style={styles.td}>
                             {new Date(record.date).toLocaleDateString()}
+                          </td>
+                          <td style={styles.td}>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: 'bold',
+                              backgroundColor: record.platform === 'Zyrax' ? '#e3f2fd' : '#f3e5f5',
+                              color: record.platform === 'Zyrax' ? '#1976d2' : '#7b1fa2'
+                            }}>
+                              {record.platform}
+                            </span>
                           </td>
                           <td style={styles.td}>
                             {record.class_title ? (

@@ -338,8 +338,8 @@ const AdminClassesPage = () => {
       // Log the join to backend
       await api.post("/zyrax/classes/join/", { class_id: classId });
 
-      // Mark attendance
-      await api.post("/zyrax/attendance/mark_attendance/", { class_id: classId });
+      // Mark attendance (using Zylo attendance endpoint)
+      await api.post("/zyrax/zylo-attendance/mark_attendance/");
 
       // Open Zoom link
       window.open(zoomLink, '_blank');
