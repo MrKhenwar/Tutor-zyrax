@@ -30,9 +30,54 @@ const EverydayStats = () => {
       };
 
       const response = await api.get(`/zyrax/analytics/everyday-stats/`, { params });
-      setStatsData(response.data);
+
+      // Validate response structure
+      if (response.data && typeof response.data === 'object') {
+        // Ensure daily_stats is an array
+        if (!response.data.daily_stats || !Array.isArray(response.data.daily_stats)) {
+          console.warn('daily_stats is missing or not an array:', response.data);
+          response.data.daily_stats = [];
+        }
+
+        // Ensure summary exists with default values
+        if (!response.data.summary || typeof response.data.summary !== 'object') {
+          console.warn('summary is missing:', response.data);
+          response.data.summary = {
+            total_joins: 0,
+            total_unique_users: 0,
+            total_attendance_records: 0,
+            avg_joins_per_day: 0
+          };
+        }
+
+        // Validate each day's data
+        response.data.daily_stats.forEach((day, index) => {
+          if (!day.joins || typeof day.joins !== 'object') {
+            console.warn(`Day ${index} missing joins data:`, day);
+            day.joins = { total_joins: 0, unique_users: 0, women: 0, men: 0, by_class: [] };
+          }
+          if (!Array.isArray(day.joins.by_class)) {
+            day.joins.by_class = [];
+          }
+          if (!day.attendance || typeof day.attendance !== 'object') {
+            console.warn(`Day ${index} missing attendance data:`, day);
+            day.attendance = { total_attendance: 0, unique_users: 0, women: 0, men: 0, by_class: [] };
+          }
+          if (!Array.isArray(day.attendance.by_class)) {
+            day.attendance.by_class = [];
+          }
+        });
+
+        setStatsData(response.data);
+      } else {
+        console.error('Invalid response data structure:', response.data);
+        setError('Received invalid data format from server');
+        setStatsData(null);
+      }
     } catch (err) {
+      console.error('Error fetching everyday stats:', err);
       setError(`Failed to fetch stats: ${err.response?.data?.detail || err.message}`);
+      setStatsData(null);
     } finally {
       setLoading(false);
     }
@@ -64,6 +109,39 @@ const EverydayStats = () => {
       </div>
 
       {error && <div style={styles.errorBox}>{error}</div>}
+
+      {/* Debug Info Panel */}
+      {statsData && (
+        <details style={{
+          backgroundColor: '#f0f8ff',
+          border: '2px solid #4a90e2',
+          borderRadius: '8px',
+          padding: '15px',
+          marginBottom: '20px',
+          cursor: 'pointer'
+        }}>
+          <summary style={{fontWeight: 'bold', color: '#4a90e2', cursor: 'pointer'}}>
+            🔍 Debug Info (Click to expand)
+          </summary>
+          <div style={{marginTop: '15px', fontSize: '13px', fontFamily: 'monospace'}}>
+            <p><strong>Date Range:</strong> {startDate} to {endDate}</p>
+            <p><strong>Total Joins in Period:</strong> {statsData?.summary?.total_joins || 0}</p>
+            <p><strong>Total Attendance Records:</strong> {statsData?.summary?.total_attendance_records || 0}</p>
+            <p><strong>Unique Users:</strong> {statsData?.summary?.total_unique_users || 0}</p>
+            <p><strong>Days with Data:</strong> {statsData?.daily_stats?.length || 0}</p>
+            <div style={{marginTop: '10px', padding: '10px', backgroundColor: '#fff', borderRadius: '4px', maxHeight: '300px', overflow: 'auto'}}>
+              <strong>Daily Breakdown:</strong>
+              {statsData?.daily_stats?.map((day, idx) => (
+                <div key={idx} style={{marginTop: '8px', padding: '8px', backgroundColor: '#f9f9f9', borderRadius: '4px'}}>
+                  <div><strong>Date:</strong> {day.date}</div>
+                  <div><strong>Joins:</strong> {day.joins?.total_joins || 0} (by_class entries: {day.joins?.by_class?.length || 0})</div>
+                  <div><strong>Attendance:</strong> {day.attendance?.total_attendance || 0} (by_class entries: {day.attendance?.by_class?.length || 0})</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </details>
+      )}
 
       {/* Date Range Selector */}
       <section style={styles.section}>
@@ -157,8 +235,9 @@ const EverydayStats = () => {
           {/* Daily Breakdown */}
           <section style={styles.section}>
             <h3 style={styles.sectionTitle}>📅 Daily Breakdown</h3>
-            <div style={styles.dailyContainer}>
-              {statsData.daily_stats.map((day, index) => (
+            {statsData.daily_stats && statsData.daily_stats.length > 0 ? (
+              <div style={styles.dailyContainer}>
+                {statsData.daily_stats.map((day, index) => (
                 <div key={index} style={styles.dayCard}>
                   <div style={styles.dayHeader}>
                     <h4 style={styles.dayTitle}>
@@ -247,7 +326,12 @@ const EverydayStats = () => {
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            ) : (
+              <div style={styles.noDataContainer}>
+                <p>No daily breakdown data available for the selected date range.</p>
+              </div>
+            )}
           </section>
         </>
       ) : (

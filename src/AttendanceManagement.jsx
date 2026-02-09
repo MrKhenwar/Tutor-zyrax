@@ -24,9 +24,20 @@ const AttendanceManagement = () => {
       const response = await api.get(`/zyrax/analytics/classes/`, {
         params: { days: classDays, limit: 10 }
       });
-      setClassStats(response.data.most_popular_classes || []);
+
+      // Validate response data
+      if (response.data && Array.isArray(response.data.most_popular_classes)) {
+        setClassStats(response.data.most_popular_classes);
+      } else if (Array.isArray(response.data)) {
+        setClassStats(response.data);
+      } else {
+        console.warn('Unexpected API response structure:', response.data);
+        setClassStats([]);
+      }
     } catch (err) {
+      console.error('Error fetching class analytics:', err);
       setError(`Failed to fetch class analytics: ${err.response?.data?.detail || err.message}`);
+      setClassStats([]);
     } finally {
       setClassStatsLoading(false);
     }
@@ -49,8 +60,17 @@ const AttendanceManagement = () => {
       };
 
       const response = await api.get(`/zyrax/attendance/search-combined/`, { params });
-      setSearchResults(response.data);
+
+      // Validate response structure
+      if (response.data && typeof response.data === 'object') {
+        setSearchResults(response.data);
+      } else {
+        console.warn('Unexpected search response:', response.data);
+        setError('Received invalid data from server');
+        setSearchResults(null);
+      }
     } catch (err) {
+      console.error('Search error:', err);
       setError(`Search failed: ${err.response?.data?.detail || err.message}`);
       setSearchResults(null);
     } finally {
@@ -277,7 +297,7 @@ const AttendanceManagement = () => {
             placeholder="Enter user name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => {
+            onKeyDown={(e) => {
               if (e.key === 'Enter') handleSearchAttendance();
             }}
             style={{...styles.input, flex: 2}}
@@ -305,9 +325,16 @@ const AttendanceManagement = () => {
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
             style={styles.select}
           >
-            {[2024, 2025, 2026].map(year => (
-              <option key={year} value={year}>{year}</option>
-            ))}
+            {(() => {
+              const currentYear = new Date().getFullYear();
+              const years = [];
+              for (let year = 2024; year <= currentYear + 1; year++) {
+                years.push(year);
+              }
+              return years.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ));
+            })()}
           </select>
           <button
             onClick={handleSearchAttendance}

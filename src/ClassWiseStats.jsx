@@ -23,6 +23,8 @@ const ClassWiseStats = () => {
   // Transform day-centric data to class-centric data
   const transformDataToClassWise = (data) => {
     const useAttendanceData = true; // Always use attendance data as fallback
+
+    // Validate input data
     if (!data) {
       console.error('No data provided to transform');
       return { classes: [], dates: [] };
@@ -40,6 +42,7 @@ const ClassWiseStats = () => {
 
     // Collect all unique classes and dates
     data.daily_stats.forEach((day, dayIndex) => {
+      // Skip invalid days
       if (!day || !day.date) {
         console.warn(`Day at index ${dayIndex} missing date:`, day);
         return;
@@ -47,44 +50,54 @@ const ClassWiseStats = () => {
 
       dates.push(day.date);
 
-      // Try both joins and attendance data
-      const joinsData = day.joins || {};
-      const attendanceData = day.attendance || {};
+      // Ensure joins and attendance data exist
+      const joinsData = day.joins || { total_joins: 0, by_class: [] };
+      const attendanceData = day.attendance || { total_attendance: 0, by_class: [] };
+
+      // Ensure by_class arrays exist
+      const joinsByClass = Array.isArray(joinsData.by_class) ? joinsData.by_class : [];
+      const attendanceByClass = Array.isArray(attendanceData.by_class) ? attendanceData.by_class : [];
 
       // Use attendance data if joins data is empty and useAttendanceData is true
-      const dataSource = (useAttendanceData && joinsData.by_class?.length === 0) ? attendanceData : joinsData;
-      const byClassArray = dataSource.by_class || [];
+      const dataSource = (useAttendanceData && joinsByClass.length === 0) ? attendanceData : joinsData;
+      const byClassArray = (useAttendanceData && joinsByClass.length === 0) ? attendanceByClass : joinsByClass;
 
       console.log(`Day ${day.date}:`, {
         hasJoins: !!day.joins,
         hasAttendance: !!day.attendance,
         joinsCount: joinsData.total_joins || 0,
         attendanceCount: attendanceData.total_attendance || 0,
+        joinsByClassLength: joinsByClass.length,
+        attendanceByClassLength: attendanceByClass.length,
         byClassLength: byClassArray.length,
         usingAttendance: dataSource === attendanceData
       });
-
-      if (!Array.isArray(byClassArray)) {
-        console.warn(`by_class is not an array for ${day.date}:`, byClassArray);
-        return;
-      }
 
       if (byClassArray.length === 0) {
         console.warn(`⚠️ No class-wise data available for ${day.date}. The backend API is not returning by_class breakdown.`);
       }
 
+      // Process each class
       byClassArray.forEach((cls, clsIndex) => {
         if (!cls) {
           console.warn(`Null class at index ${clsIndex} for day ${day.date}`);
           return;
         }
 
-        const className = cls.zyrax_class__title || cls.class_title || cls.title || `Class ${clsIndex}`;
-        const count = parseInt(cls.attendance_count || cls.join_count || cls.joins || cls.count || 0);
-        const uniqueUsers = parseInt(cls.unique_users || cls.users || 0);
+        // Get class name with multiple fallbacks
+        const className = cls.zyrax_class__title || cls.class_title || cls.title || `Unknown Class ${clsIndex + 1}`;
+
+        // Get count with multiple fallbacks and ensure it's a valid number
+        const rawCount = cls.attendance_count || cls.join_count || cls.joins || cls.count || 0;
+        const count = isNaN(rawCount) ? 0 : parseInt(rawCount, 10);
+
+        // Get unique users with fallbacks
+        const rawUsers = cls.unique_users || cls.users || 0;
+        const uniqueUsers = isNaN(rawUsers) ? 0 : parseInt(rawUsers, 10);
 
         console.log(`  Class: ${className}, Count: ${count}, Users: ${uniqueUsers}`);
 
+        // Initialize class in map if not exists
         if (!classMap.has(className)) {
           classMap.set(className, {
             className: className,
@@ -94,6 +107,7 @@ const ClassWiseStats = () => {
           });
         }
 
+        // Update class data
         const classData = classMap.get(className);
         classData.dailyStats[day.date] = {
           joins: count,
@@ -105,8 +119,11 @@ const ClassWiseStats = () => {
 
     console.log(`Found ${classMap.size} unique classes across ${dates.length} days`);
 
-    if (classMap.size === 0) {
-      console.error('❌ BACKEND ISSUE: The /zyrax/analytics/everyday-stats/ endpoint is not returning by_class data. All by_class arrays are empty.');
+    if (classMap.size === 0 && dates.length > 0) {
+      console.warn('⚠️ No class data found despite having date records. This may indicate:');
+      console.warn('   1. Backend API not returning by_class breakdown');
+      console.warn('   2. No attendance records linked to classes in this date range');
+      console.warn('   3. Historical data without class associations');
     }
 
     // Calculate days active for each class
@@ -137,6 +154,51 @@ const ClassWiseStats = () => {
       console.log('Fetching stats with params:', params);
       const response = await api.get(`/zyrax/analytics/everyday-stats/`, { params });
       console.log('API Response:', response.data);
+
+      // Validate response structure
+      if (!response.data || typeof response.data !== 'object') {
+        console.error('Invalid response data structure:', response.data);
+        setError('Received invalid data format from server');
+        setStatsData(null);
+        setClassWiseData({ classes: [], dates: [] });
+        return;
+      }
+
+      // Ensure daily_stats is an array
+      if (!response.data.daily_stats || !Array.isArray(response.data.daily_stats)) {
+        console.warn('daily_stats is missing or not an array:', response.data);
+        response.data.daily_stats = [];
+      }
+
+      // Ensure summary exists with default values
+      if (!response.data.summary || typeof response.data.summary !== 'object') {
+        console.warn('summary is missing:', response.data);
+        response.data.summary = {
+          total_joins: 0,
+          total_unique_users: 0,
+          total_attendance_records: 0,
+          avg_joins_per_day: 0
+        };
+      }
+
+      // Validate each day's data structure
+      response.data.daily_stats.forEach((day, index) => {
+        if (!day.joins || typeof day.joins !== 'object') {
+          console.warn(`Day ${index} missing joins data:`, day);
+          day.joins = { total_joins: 0, unique_users: 0, women: 0, men: 0, by_class: [] };
+        }
+        if (!Array.isArray(day.joins.by_class)) {
+          day.joins.by_class = [];
+        }
+        if (!day.attendance || typeof day.attendance !== 'object') {
+          console.warn(`Day ${index} missing attendance data:`, day);
+          day.attendance = { total_attendance: 0, unique_users: 0, women: 0, men: 0, by_class: [] };
+        }
+        if (!Array.isArray(day.attendance.by_class)) {
+          day.attendance.by_class = [];
+        }
+      });
+
       setStatsData(response.data);
 
       // Transform data to class-wise view
@@ -144,13 +206,15 @@ const ClassWiseStats = () => {
       console.log('Transformed data:', transformed);
       setClassWiseData(transformed || { classes: [], dates: [] });
 
-      // If no classes found, show helpful error
-      if (transformed.classes.length === 0 && response.data.summary.total_attendance_records > 0) {
-        setError('Backend API Issue: The analytics endpoint is not returning class-wise breakdown data. The by_class arrays are empty even though there are ' + response.data.summary.total_attendance_records + ' attendance records. This needs to be fixed in the backend Django view at zyrax/views.py in the everyday_stats_view function.');
+      // Clear error if data is successfully loaded
+      if (transformed && transformed.classes.length > 0) {
+        setError(null);
       }
     } catch (err) {
       console.error('Error fetching stats:', err);
       setError(`Failed to fetch stats: ${err.response?.data?.detail || err.message}`);
+      setStatsData(null);
+      setClassWiseData({ classes: [], dates: [] });
     } finally {
       setLoading(false);
     }
@@ -192,6 +256,48 @@ const ClassWiseStats = () => {
       </div>
 
       {error && <div style={styles.errorBox}>{error}</div>}
+
+      {/* Debug Info Panel */}
+      {statsData && (
+        <details style={{
+          backgroundColor: '#f0f8ff',
+          border: '2px solid #4a90e2',
+          borderRadius: '8px',
+          padding: '15px',
+          marginBottom: '20px',
+          cursor: 'pointer'
+        }}>
+          <summary style={{fontWeight: 'bold', color: '#4a90e2', cursor: 'pointer'}}>
+            🔍 Debug Info (Click to expand)
+          </summary>
+          <div style={{marginTop: '15px', fontSize: '13px', fontFamily: 'monospace'}}>
+            <p><strong>Date Range:</strong> {startDate} to {endDate}</p>
+            <p><strong>Total Joins in Period:</strong> {statsData?.summary?.total_joins || 0}</p>
+            <p><strong>Total Attendance Records:</strong> {statsData?.summary?.total_attendance_records || 0}</p>
+            <p><strong>Unique Users:</strong> {statsData?.summary?.total_unique_users || 0}</p>
+            <p><strong>Days with Data:</strong> {statsData?.daily_stats?.length || 0}</p>
+            <p><strong>Classes Found:</strong> {classWiseData?.classes?.length || 0}</p>
+            <div style={{marginTop: '10px', padding: '10px', backgroundColor: '#fff', borderRadius: '4px', maxHeight: '300px', overflow: 'auto'}}>
+              <strong>Daily Breakdown:</strong>
+              {statsData?.daily_stats?.map((day, idx) => (
+                <div key={idx} style={{marginTop: '8px', padding: '8px', backgroundColor: '#f9f9f9', borderRadius: '4px'}}>
+                  <div><strong>Date:</strong> {day.date}</div>
+                  <div><strong>Joins:</strong> {day.joins?.total_joins || 0} (by_class entries: {day.joins?.by_class?.length || 0})</div>
+                  <div><strong>Attendance:</strong> {day.attendance?.total_attendance || 0} (by_class entries: {day.attendance?.by_class?.length || 0})</div>
+                  {day.joins?.by_class?.length > 0 && (
+                    <div style={{marginLeft: '15px', marginTop: '4px'}}>
+                      <strong>Classes with joins:</strong>
+                      {day.joins.by_class.map((cls, i) => (
+                        <div key={i}> → {cls.zyrax_class__title || 'Unknown'}: {cls.join_count} joins</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </details>
+      )}
 
       {/* Date Range Selector */}
       <section style={styles.section}>
@@ -264,19 +370,19 @@ const ClassWiseStats = () => {
             <h3 style={styles.sectionTitle}>📈 Summary</h3>
             <div style={styles.statsGrid}>
               <div style={{...styles.statCard, backgroundColor: '#e3f2fd'}}>
-                <div style={styles.statValue}>{classWiseData.classes.length}</div>
+                <div style={styles.statValue}>{classWiseData?.classes?.length || 0}</div>
                 <div style={styles.statLabel}>Total Classes</div>
               </div>
               <div style={{...styles.statCard, backgroundColor: '#f3e5f5'}}>
-                <div style={styles.statValue}>{statsData.summary.total_joins}</div>
+                <div style={styles.statValue}>{statsData?.summary?.total_joins || 0}</div>
                 <div style={styles.statLabel}>Total Joins</div>
               </div>
               <div style={{...styles.statCard, backgroundColor: '#e8f5e9'}}>
-                <div style={styles.statValue}>{statsData.summary.total_unique_users}</div>
+                <div style={styles.statValue}>{statsData?.summary?.total_unique_users || 0}</div>
                 <div style={styles.statLabel}>Unique Users</div>
               </div>
               <div style={{...styles.statCard, backgroundColor: '#fff3e0'}}>
-                <div style={styles.statValue}>{classWiseData.dates.length}</div>
+                <div style={styles.statValue}>{classWiseData?.dates?.length || 0}</div>
                 <div style={styles.statLabel}>Days Tracked</div>
               </div>
             </div>
