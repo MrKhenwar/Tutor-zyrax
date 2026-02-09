@@ -59,7 +59,9 @@ const AttendanceManagement = () => {
         year: selectedYear
       };
 
-      const response = await api.get(`/zyrax/attendance/search-combined/`, { params });
+      // Note: Using /attendance/search/ for now (Zyrax only)
+      // TODO: Switch to /attendance/search-combined/ when backend is deployed
+      const response = await api.get(`/zyrax/attendance/search/`, { params });
 
       // Validate response structure
       if (response.data && typeof response.data === 'object') {
@@ -379,15 +381,7 @@ const AttendanceManagement = () => {
             <div style={styles.statsGrid}>
               <div style={{...styles.statCard, backgroundColor: '#e8f5e9'}}>
                 <div style={styles.statValue}>{searchResults.total_joins}</div>
-                <div style={styles.statLabel}>Total Attendance Days</div>
-              </div>
-              <div style={{...styles.statCard, backgroundColor: '#e3f2fd'}}>
-                <div style={styles.statValue}>{searchResults.zyrax_attendance_count || 0}</div>
-                <div style={styles.statLabel}>Zyrax Attendance</div>
-              </div>
-              <div style={{...styles.statCard, backgroundColor: '#f3e5f5'}}>
-                <div style={styles.statValue}>{searchResults.zylo_attendance_count || 0}</div>
-                <div style={styles.statLabel}>Zylo Attendance</div>
+                <div style={styles.statLabel}>Total Attendance Days (Zyrax)</div>
               </div>
               {searchResults.most_joined_class ? (
                 <div style={{...styles.statCard, backgroundColor: '#fff3e0'}}>
@@ -495,10 +489,10 @@ const AttendanceManagement = () => {
                               borderRadius: '4px',
                               fontSize: '12px',
                               fontWeight: 'bold',
-                              backgroundColor: record.platform === 'Zyrax' ? '#e3f2fd' : '#f3e5f5',
-                              color: record.platform === 'Zyrax' ? '#1976d2' : '#7b1fa2'
+                              backgroundColor: '#e3f2fd',
+                              color: '#1976d2'
                             }}>
-                              {record.platform}
+                              {record.platform || 'Zyrax'}
                             </span>
                           </td>
                           <td style={styles.td}>
