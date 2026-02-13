@@ -277,7 +277,12 @@ const EverydayStats = () => {
                         <div style={styles.classBreakdownTitle}>By Class:</div>
                         {day.joins.by_class.map((cls, idx) => (
                           <div key={idx} style={styles.classItem}>
-                            <span style={styles.className}>{cls.zyrax_class__title}</span>
+                            <span style={styles.className}>
+                              <span style={{fontFamily: 'monospace', color: '#666', fontSize: '12px', marginRight: '8px'}}>
+                                #{cls.zyrax_class__id || 'N/A'}
+                              </span>
+                              {cls.zyrax_class__title}
+                            </span>
                             <span style={styles.classCount}>
                               {cls.join_count} joins ({cls.unique_users} users)
                             </span>
@@ -315,7 +320,12 @@ const EverydayStats = () => {
                         <div style={styles.classBreakdownTitle}>By Class:</div>
                         {day.attendance.by_class.map((cls, idx) => (
                           <div key={idx} style={styles.classItem}>
-                            <span style={styles.className}>{cls.zyrax_class__title}</span>
+                            <span style={styles.className}>
+                              <span style={{fontFamily: 'monospace', color: '#666', fontSize: '12px', marginRight: '8px'}}>
+                                #{cls.zyrax_class__id || 'N/A'}
+                              </span>
+                              {cls.zyrax_class__title}
+                            </span>
                             <span style={styles.classCount}>
                               {cls.attendance_count} records ({cls.unique_users} users)
                             </span>

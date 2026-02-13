@@ -213,7 +213,7 @@ const AttendanceManagement = () => {
                         {cls.zyrax_class__title}
                       </div>
                       <div style={{fontSize: '13px', color: '#666'}}>
-                        {cls.zyrax_class__time} • {cls.join_count} joins ({percentage}%)
+                        ID: <span style={{fontFamily: 'monospace'}}>#{cls.zyrax_class__id}</span> • {cls.zyrax_class__time} • {cls.join_count} joins ({percentage}%)
                       </div>
                       <div style={{fontSize: '12px', color: '#999'}}>
                         {cls.unique_users} unique users
@@ -259,6 +259,7 @@ const AttendanceManagement = () => {
               <thead>
                 <tr>
                   <th style={styles.th}>Rank</th>
+                  <th style={styles.th}>Class ID</th>
                   <th style={styles.th}>Class Title</th>
                   <th style={styles.th}>Time</th>
                   <th style={styles.th}>Total Joins</th>
@@ -270,6 +271,9 @@ const AttendanceManagement = () => {
                   <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
                     <td style={styles.td}>
                       <span style={styles.rankBadge}>{index + 1}</span>
+                    </td>
+                    <td style={styles.td}>
+                      <span style={{fontFamily: 'monospace', color: '#666'}}>#{cls.zyrax_class__id}</span>
                     </td>
                     <td style={styles.td}>{cls.zyrax_class__title}</td>
                     <td style={styles.td}>{cls.zyrax_class__time}</td>
@@ -436,6 +440,7 @@ const AttendanceManagement = () => {
                     <thead>
                       <tr>
                         <th style={styles.th}>Rank</th>
+                        <th style={styles.th}>Class ID</th>
                         <th style={styles.th}>Class Title</th>
                         <th style={styles.th}>Time</th>
                         <th style={styles.th}>Times Joined</th>
@@ -446,6 +451,9 @@ const AttendanceManagement = () => {
                         <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
                           <td style={styles.td}>
                             <span style={styles.rankBadge}>{index + 1}</span>
+                          </td>
+                          <td style={styles.td}>
+                            <span style={{fontFamily: 'monospace', color: '#666'}}>#{cls.zyrax_class__id || 'N/A'}</span>
                           </td>
                           <td style={styles.td}>{cls.zyrax_class__title}</td>
                           <td style={styles.td}>{cls.zyrax_class__time}</td>

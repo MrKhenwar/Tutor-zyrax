@@ -84,7 +84,8 @@ const ClassWiseStats = () => {
           return;
         }
 
-        // Get class name with multiple fallbacks
+        // Get class ID and name with multiple fallbacks
+        const classId = cls.zyrax_class__id || cls.class_id || null;
         const className = cls.zyrax_class__title || cls.class_title || cls.title || `Unknown Class ${clsIndex + 1}`;
 
         // Get count with multiple fallbacks and ensure it's a valid number
@@ -95,11 +96,15 @@ const ClassWiseStats = () => {
         const rawUsers = cls.unique_users || cls.users || 0;
         const uniqueUsers = isNaN(rawUsers) ? 0 : parseInt(rawUsers, 10);
 
-        console.log(`  Class: ${className}, Count: ${count}, Users: ${uniqueUsers}`);
+        console.log(`  Class ID: ${classId}, Class: ${className}, Count: ${count}, Users: ${uniqueUsers}`);
+
+        // Use class ID + name as unique key to avoid duplicates
+        const classKey = classId ? `${classId}-${className}` : className;
 
         // Initialize class in map if not exists
-        if (!classMap.has(className)) {
-          classMap.set(className, {
+        if (!classMap.has(classKey)) {
+          classMap.set(classKey, {
+            classId: classId,
             className: className,
             dailyStats: {},
             totalJoins: 0,
@@ -108,7 +113,7 @@ const ClassWiseStats = () => {
         }
 
         // Update class data
-        const classData = classMap.get(className);
+        const classData = classMap.get(classKey);
         classData.dailyStats[day.date] = {
           joins: count,
           uniqueUsers: uniqueUsers,
@@ -450,18 +455,24 @@ const ClassWiseStats = () => {
               <table style={styles.table}>
                 <thead>
                   <tr>
+                    <th style={{...styles.th, ...styles.stickyCol}}>Class ID</th>
                     <th style={{...styles.th, ...styles.stickyCol}}>Class Name</th>
                     {classWiseData.dates.map((date, idx) => (
                       <th key={idx} style={styles.th}>
                         {formatDate(date)}
                       </th>
                     ))}
-                    <th style={styles.th}>Total Joins</th>
+                    <th style={styles.th}>Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {classWiseData.classes.map((classData, idx) => (
                     <tr key={idx} style={idx % 2 === 0 ? styles.trEven : styles.trOdd}>
+                      <td style={{...styles.td, ...styles.stickyCol, textAlign: 'center'}}>
+                        <span style={{fontFamily: 'monospace', color: '#666', fontSize: '13px'}}>
+                          #{classData.classId || 'N/A'}
+                        </span>
+                      </td>
                       <td style={{...styles.td, ...styles.stickyCol, ...styles.classNameCell}}>
                         {classData.className}
                       </td>
