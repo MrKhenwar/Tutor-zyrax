@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
-import api from "./api"; // Import the central api instance
+import api from "./api";
 import AttendanceManagement from "./AttendanceManagement";
+import "./AdminClassesPage.css";
 
 // Timezone utility functions
 const convertISTToLocal = (istTimeString, dateString = null) => {
@@ -353,29 +354,29 @@ const AdminClassesPage = () => {
   };
 
   return (
-    <div style={styles.page}>
-      <header style={styles.header}>
+    <div className="admin-page">
+      <header className="admin-header">
         <h1 style={styles.title}>🎓 Admin Dashboard</h1>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button onClick={() => navigate('/todays-data')} style={styles.todaysDataButton}>
+        <nav className="admin-nav">
+          <button className="admin-nav-btn" onClick={() => navigate('/todays-data')} style={{ backgroundColor: '#17a2b8' }}>
             📅 Today's Data
           </button>
-          <button onClick={() => navigate('/subscribers')} style={styles.subscribersButton}>
-            👥 Manage Subscribers
+          <button className="admin-nav-btn" onClick={() => navigate('/subscribers')} style={{ backgroundColor: '#007bff' }}>
+            👥 Subscribers
           </button>
-          <button onClick={() => navigate('/extend-subscription')} style={styles.extensionButton}>
-            ⏰ Extend Subscription
+          <button className="admin-nav-btn" onClick={() => navigate('/extend-subscription')} style={{ backgroundColor: '#28a745' }}>
+            ⏰ Extend Sub
           </button>
-          <button onClick={() => navigate('/everyday-stats')} style={styles.statsButton}>
-            📊 Everyday Stats
+          <button className="admin-nav-btn" onClick={() => navigate('/everyday-stats')} style={{ backgroundColor: '#6f42c1' }}>
+            📊 Daily Stats
           </button>
-          <button onClick={() => navigate('/class-wise-stats')} style={styles.classWiseButton}>
-            📋 Class-Wise Stats
+          <button className="admin-nav-btn" onClick={() => navigate('/class-wise-stats')} style={{ backgroundColor: '#fd7e14' }}>
+            📋 Class Stats
           </button>
-          <button onClick={logout} style={styles.logoutButton}>
+          <button className="admin-nav-btn" onClick={logout} style={{ backgroundColor: '#dc3545' }}>
             Logout
           </button>
-        </div>
+        </nav>
       </header>
 
       {error && <div style={styles.errorBox}>{error}</div>}
@@ -675,15 +676,7 @@ const AdminClassesPage = () => {
 
 // --- Styles ---
 const styles = {
-    page: { padding: '40px', fontFamily: 'Arial, sans-serif', backgroundColor: '#f4f7f6', minHeight: '100vh'},
-    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
     title: { color: '#333', margin: 0 },
-    todaysDataButton: { padding: '10px 20px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' },
-    subscribersButton: { padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' },
-    extensionButton: { padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' },
-    statsButton: { padding: '10px 20px', backgroundColor: '#6f42c1', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' },
-    classWiseButton: { padding: '10px 20px', backgroundColor: '#fd7e14', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' },
-    logoutButton: { padding: '10px 20px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', whiteSpace: 'nowrap' },
     errorBox: { color: '#721c24', backgroundColor: '#f8d7da', border: '1px solid #f5c6cb', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' },
     successBox: { color: '#155724', backgroundColor: '#d4edda', border: '1px solid #c3e6cb', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' },
     noticeBox: { backgroundColor: '#e2f3ff', border: '1px solid #b8e2ff', borderRadius: '8px', padding: '16px', marginBottom: '30px', textAlign: 'center', color: '#004085' },
