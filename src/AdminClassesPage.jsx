@@ -357,6 +357,9 @@ const AdminClassesPage = () => {
       <header style={styles.header}>
         <h1 style={styles.title}>🎓 Admin Dashboard</h1>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button onClick={() => navigate('/todays-data')} style={styles.todaysDataButton}>
+            📅 Today's Data
+          </button>
           <button onClick={() => navigate('/subscribers')} style={styles.subscribersButton}>
             👥 Manage Subscribers
           </button>
@@ -675,6 +678,7 @@ const styles = {
     page: { padding: '40px', fontFamily: 'Arial, sans-serif', backgroundColor: '#f4f7f6', minHeight: '100vh'},
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
     title: { color: '#333', margin: 0 },
+    todaysDataButton: { padding: '10px 20px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' },
     subscribersButton: { padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' },
     extensionButton: { padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' },
     statsButton: { padding: '10px 20px', backgroundColor: '#6f42c1', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' },

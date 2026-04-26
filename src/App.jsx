@@ -10,6 +10,8 @@ import ClassWiseStats from "./ClassWiseStats";
 import DataDiagnostics from "./DataDiagnostics";
 import TutorLogin from "./TutorLogin";
 import TutorDashboard from "./TutorDashboard";
+import ZoomClassManagement from "./ZoomClassManagement";
+import TodaysData from "./TodaysData";
 import { AuthProvider } from "./AuthContext";
 import { TutorAuthProvider } from "./TutorAuthContext";
 import ProtectedRoute from "./ProtectedRoute";
@@ -31,6 +33,14 @@ export default function App() {
               element={
                 <TutorProtectedRoute>
                   <TutorDashboard />
+                </TutorProtectedRoute>
+              }
+            />
+            <Route
+              path="/zoom-classes"
+              element={
+                <TutorProtectedRoute>
+                  <ZoomClassManagement />
                 </TutorProtectedRoute>
               }
             />
@@ -71,6 +81,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <DataDiagnostics />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/todays-data"
+              element={
+                <ProtectedRoute>
+                  <TodaysData />
                 </ProtectedRoute>
               }
             />

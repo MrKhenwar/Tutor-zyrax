@@ -164,9 +164,17 @@ const TutorDashboard = () => {
     <div style={styles.page}>
       <header style={styles.header}>
         <h1 style={styles.title}>🎓 Tutor Dashboard</h1>
-        <button onClick={tutorLogout} style={styles.logoutButton}>
-          Logout
-        </button>
+        <div style={styles.headerButtons}>
+          <button
+            onClick={() => (window.location.href = '/zoom-classes')}
+            style={styles.zoomButton}
+          >
+            🎥 Zoom Classes
+          </button>
+          <button onClick={tutorLogout} style={styles.logoutButton}>
+            Logout
+          </button>
+        </div>
       </header>
 
       {error && <div style={styles.errorBox}>{error}</div>}
@@ -219,7 +227,15 @@ const TutorDashboard = () => {
       {/* Classes Tab */}
       {activeTab === 'classes' && (
         <div style={styles.section}>
-          <h2>📚 Manage Classes</h2>
+          <div style={styles.sectionHeader}>
+            <h2>📚 Manage Classes</h2>
+            <button
+              onClick={() => (window.location.href = '/zoom-classes')}
+              style={styles.zoomClassesButton}
+            >
+              🎥 Create Zoom Classes
+            </button>
+          </div>
           {loadingClasses ? (
             <p>Loading classes...</p>
           ) : (
@@ -472,6 +488,31 @@ const styles = {
   title: {
     color: '#333',
     margin: 0,
+  },
+  headerButtons: {
+    display: 'flex',
+    gap: '10px',
+  },
+  zoomButton: {
+    padding: '10px 20px',
+    backgroundColor: '#6f42c1',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 'bold',
+  },
+  zoomClassesButton: {
+    padding: '12px 24px',
+    backgroundColor: '#6f42c1',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 'bold',
+    transition: 'all 0.3s',
   },
   logoutButton: {
     padding: '10px 20px',
