@@ -156,6 +156,12 @@ const TutorDashboard = () => {
           >
             🎥 Zoom Classes
           </button>
+          <button
+            onClick={() => (window.location.href = '/user-datasheet')}
+            style={styles.datasheetButton}
+          >
+            User Datasheet
+          </button>
           <button onClick={tutorLogout} style={styles.logoutButton}>
             Logout
           </button>
@@ -470,6 +476,17 @@ const styles = {
   zoomButton: {
     padding: '8px 16px',
     backgroundColor: '#6f42c1',
+    color: 'white',
+    border: 'none',
+    borderRadius: '7px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: 'bold',
+    whiteSpace: 'nowrap',
+  },
+  datasheetButton: {
+    padding: '8px 16px',
+    backgroundColor: '#1a1a2e',
     color: 'white',
     border: 'none',
     borderRadius: '7px',

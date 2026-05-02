@@ -12,6 +12,7 @@ import TutorLogin from "./TutorLogin";
 import TutorDashboard from "./TutorDashboard";
 import ZoomClassManagement from "./ZoomClassManagement";
 import TodaysData from "./TodaysData";
+import UserDatasheet from "./UserDatasheet";
 import { AuthProvider } from "./AuthContext";
 import { TutorAuthProvider } from "./TutorAuthContext";
 import ProtectedRoute from "./ProtectedRoute";
@@ -89,6 +90,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <TodaysData />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/user-datasheet"
+              element={
+                <ProtectedRoute>
+                  <UserDatasheet />
                 </ProtectedRoute>
               }
             />

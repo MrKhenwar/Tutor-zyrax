@@ -373,6 +373,9 @@ const AdminClassesPage = () => {
           <button className="admin-nav-btn" onClick={() => navigate('/class-wise-stats')} style={{ backgroundColor: '#fd7e14' }}>
             📋 Class Stats
           </button>
+          <button className="admin-nav-btn" onClick={() => navigate('/user-datasheet')} style={{ backgroundColor: '#1a1a2e' }}>
+            User Datasheet
+          </button>
           <button className="admin-nav-btn" onClick={logout} style={{ backgroundColor: '#dc3545' }}>
             Logout
           </button>
