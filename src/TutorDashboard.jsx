@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTutorAuth } from './TutorAuthContext';
 import axios from 'axios';
+import { ChatSection } from './AdminChat';
 
 const TutorDashboard = () => {
   const { tutorLogout } = useTutorAuth();
@@ -186,23 +187,31 @@ const TutorDashboard = () => {
           >
             📢 Announcements
           </button>
+          <button
+            onClick={() => setActiveTab('chat')}
+            style={{ ...styles.tab, ...(activeTab === 'chat' ? styles.activeTab : {}) }}
+          >
+            💬 Chat
+          </button>
         </div>
 
-        <div style={styles.platformContainer}>
-          <span style={styles.platformLabel}>Platform:</span>
-          <button
-            onClick={() => setPlatform('zyrax')}
-            style={{ ...styles.platformButton, ...(platform === 'zyrax' ? styles.activePlatform : {}) }}
-          >
-            Zyrax
-          </button>
-          <button
-            onClick={() => setPlatform('zylo')}
-            style={{ ...styles.platformButton, ...(platform === 'zylo' ? styles.activePlatform : {}) }}
-          >
-            Zylo
-          </button>
-        </div>
+        {activeTab !== 'chat' && (
+          <div style={styles.platformContainer}>
+            <span style={styles.platformLabel}>Platform:</span>
+            <button
+              onClick={() => setPlatform('zyrax')}
+              style={{ ...styles.platformButton, ...(platform === 'zyrax' ? styles.activePlatform : {}) }}
+            >
+              Zyrax
+            </button>
+            <button
+              onClick={() => setPlatform('zylo')}
+              style={{ ...styles.platformButton, ...(platform === 'zylo' ? styles.activePlatform : {}) }}
+            >
+              Zylo
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Classes Tab */}
@@ -337,6 +346,9 @@ const TutorDashboard = () => {
           )}
         </div>
       )}
+
+      {/* Chat Section */}
+      {activeTab === 'chat' && <ChatSection />}
 
       {/* Cancel Class Modal */}
       {showCancelForm && cancellingClass && (

@@ -13,6 +13,7 @@ import TutorDashboard from "./TutorDashboard";
 import ZoomClassManagement from "./ZoomClassManagement";
 import TodaysData from "./TodaysData";
 import UserDatasheet from "./UserDatasheet";
+import ChatPage from "./ChatPage";
 import { AuthProvider } from "./AuthContext";
 import { TutorAuthProvider } from "./TutorAuthContext";
 import ProtectedRoute from "./ProtectedRoute";
@@ -98,6 +99,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <UserDatasheet />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/chat"
+              element={
+                <ProtectedRoute>
+                  <ChatPage />
                 </ProtectedRoute>
               }
             />

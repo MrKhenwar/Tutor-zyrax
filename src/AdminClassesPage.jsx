@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import api from "./api";
 import AttendanceManagement from "./AttendanceManagement";
+import AdminChat from "./AdminChat";
 import "./AdminClassesPage.css";
 
 // Timezone utility functions
@@ -673,6 +674,9 @@ const AdminClassesPage = () => {
             )}
         </section>
       </div>
+
+      {/* Floating admin chat — talk to any Zyrax/Zylo user */}
+      <AdminChat />
     </div>
   );
 };
