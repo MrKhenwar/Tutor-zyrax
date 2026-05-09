@@ -27,10 +27,17 @@ const classBadgeColor = (type) => {
   return { background: "#e3f2fd", color: "#1565c0" };
 };
 
+const isSubExpired = (sub) => {
+  if (!sub.is_active) return true;
+  if (sub.days_remaining !== undefined && sub.days_remaining <= 0) return true;
+  if (sub.end_date && new Date(sub.end_date) < new Date()) return true;
+  return false;
+};
+
 const statusBadge = (sub) => {
   if (!sub) return { label: "No Plan", style: { background: "#f5f5f5", color: "#757575" } };
   if (sub.is_on_hold) return { label: "On Hold", style: { background: "#fff8e1", color: "#f57f17" } };
-  if (sub.is_active) return { label: "Active", style: { background: "#e8f5e9", color: "#2e7d32" } };
+  if (!isSubExpired(sub)) return { label: "Active", style: { background: "#e8f5e9", color: "#2e7d32" } };
   return { label: "Expired", style: { background: "#fce4ec", color: "#c62828" } };
 };
 
@@ -189,9 +196,9 @@ const UserDatasheet = () => {
     if (statusFilter !== "all") {
       list = list.filter((u) => {
         const sub = u.subscription;
-        if (statusFilter === "active") return sub && sub.is_active && !sub.is_on_hold;
+        if (statusFilter === "active") return sub && !sub.is_on_hold && !isSubExpired(sub);
         if (statusFilter === "hold") return sub && sub.is_on_hold;
-        if (statusFilter === "expired") return sub && !sub.is_active;
+        if (statusFilter === "expired") return sub && isSubExpired(sub);
         if (statusFilter === "no_plan") return !sub;
         if (statusFilter === "trial") return u.has_used_trial;
         if (statusFilter === "no_profile") return !u.has_profile;
@@ -230,9 +237,9 @@ const UserDatasheet = () => {
   );
 
   const summary = useMemo(() => {
-    const active = users.filter((u) => u.subscription?.is_active && !u.subscription?.is_on_hold).length;
+    const active = users.filter((u) => u.subscription && !u.subscription.is_on_hold && !isSubExpired(u.subscription)).length;
     const hold = users.filter((u) => u.subscription?.is_on_hold).length;
-    const expired = users.filter((u) => u.subscription && !u.subscription.is_active).length;
+    const expired = users.filter((u) => u.subscription && isSubExpired(u.subscription)).length;
     const noPlan = users.filter((u) => !u.subscription).length;
     const noProfile = users.filter((u) => !u.has_profile).length;
     const totalAtt = users.reduce((s, u) => s + u.total_attendance, 0);
@@ -395,7 +402,7 @@ const UserDatasheet = () => {
                         ) : "—"}
                       </td>
                       <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>
-                        {sub && sub.is_active ? (
+                        {sub && !isSubExpired(sub) ? (
                           <span style={{ color: sub.days_remaining <= 7 ? "#c62828" : "#2e7d32" }}>
                             {sub.days_remaining}d
                           </span>
