@@ -119,11 +119,13 @@ const UserDatasheet = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortField, setSortField] = useState("full_name");
   const [sortDir, setSortDir] = useState("asc");
+  const [displayCount, setDisplayCount] = useState(200);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     setExpandedRows(new Set());
+    setDisplayCount(200);
     try {
       const res = await api.get(`/${platform}/admin/user-datasheet/`, { timeout: 60000 });
       setUsers(res.data.users || []);
@@ -157,6 +159,16 @@ const UserDatasheet = () => {
       setSortField(field);
       setSortDir("asc");
     }
+  };
+
+  const handleSearchChange = (e) => {
+    setSearch(e.target.value);
+    setDisplayCount(200);
+  };
+
+  const handleStatusChange = (e) => {
+    setStatusFilter(e.target.value);
+    setDisplayCount(200);
   };
 
   const filtered = useMemo(() => {
@@ -272,10 +284,10 @@ const UserDatasheet = () => {
           type="text"
           placeholder="Search by name, phone, or username…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={handleSearchChange}
           style={styles.searchInput}
         />
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={styles.select}>
+        <select value={statusFilter} onChange={handleStatusChange} style={styles.select}>
           <option value="all">All Users</option>
           <option value="active">Active Plan</option>
           <option value="hold">On Hold</option>
@@ -335,7 +347,7 @@ const UserDatasheet = () => {
                   </td>
                 </tr>
               )}
-              {filtered.map((u) => {
+              {filtered.slice(0, displayCount).map((u) => {
                 const sub = u.subscription;
                 const badge = statusBadge(sub);
                 const expanded = expandedRows.has(u.id);
@@ -470,8 +482,19 @@ const UserDatasheet = () => {
         </div>
       )}
 
-      <div style={{ marginTop: 16, color: "#9e9e9e", fontSize: 12 }}>
-        Showing {filtered.length} of {users.length} users
+      <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+        <span style={{ color: "#9e9e9e", fontSize: 12 }}>
+          Showing {Math.min(displayCount, filtered.length)} of {filtered.length} users
+          {filtered.length !== users.length ? ` (${users.length} total)` : ""}
+        </span>
+        {displayCount < filtered.length && (
+          <button
+            onClick={() => setDisplayCount((c) => c + 200)}
+            style={styles.loadMoreBtn}
+          >
+            Load More ({Math.min(200, filtered.length - displayCount)} more)
+          </button>
+        )}
       </div>
     </div>
   );
@@ -655,6 +678,16 @@ const styles = {
     fontWeight: 600,
     color: "#555",
     marginRight: 4,
+  },
+  loadMoreBtn: {
+    padding: "8px 20px",
+    borderRadius: 8,
+    background: "#1a1a2e",
+    color: "#fff",
+    border: "none",
+    cursor: "pointer",
+    fontSize: 13,
+    fontWeight: 600,
   },
 };
 

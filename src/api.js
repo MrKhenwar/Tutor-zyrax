@@ -29,7 +29,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Check if the error is 401 and we haven't already retried the request
-    if (error.response.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true; // Mark that we've retried this request
 
       const refreshToken = localStorage.getItem('refreshToken');
