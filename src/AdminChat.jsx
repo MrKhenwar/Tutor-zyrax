@@ -74,7 +74,7 @@ function useChatLogic({ isOpen = true } = {}) {
   useEffect(() => {
     if (!isOpen || view !== "conversations") return;
     fetchConversations();
-    pollRef.current = setInterval(fetchConversations, 4000);
+    pollRef.current = setInterval(fetchConversations, 10000);
     return () => clearInterval(pollRef.current);
   }, [isOpen, view, fetchConversations]);
 
