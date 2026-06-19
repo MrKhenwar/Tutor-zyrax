@@ -43,16 +43,17 @@ const statusBadge = (sub) => {
 
 // ─── CSV export ─────────────────────────────────────────────────────────────
 
-const exportCSV = (users, platform) => {
+const exportCSV = (users, platform, notesMap) => {
   const headers = [
     "Name", "Phone", "Username", "Date Joined", "DOB",
     "Goal", platform === "zyrax" ? "User Type" : null,
     "Plan", "Plan Start", "Plan End", "Status", "Days Left", "Amount Paid",
-    "Total Attendance", "This Month", "Last Attended", "Favourite Class",
+    "Total Attendance", "This Month", "Last Attended", "Favourite Class", "Note",
   ].filter(Boolean);
 
   const rows = users.map((u) => {
     const sub = u.subscription;
+    const note = notesMap?.[u.id] ?? u.admin_note ?? "";
     const row = [
       u.full_name,
       u.phone_number,
@@ -71,6 +72,7 @@ const exportCSV = (users, platform) => {
       u.month_attendance,
       fmt(u.last_attended_date),
       u.most_attended_class ? u.most_attended_class.class_name : "—",
+      note,
     ];
     return row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
   });
@@ -83,6 +85,75 @@ const exportCSV = (users, platform) => {
   a.download = `${platform}-users-${new Date().toISOString().split("T")[0]}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+};
+
+// ─── sub-component: inline note cell ────────────────────────────────────────
+
+const NoteCell = ({ userId, initialValue, platform, onSaved }) => {
+  const [value, setValue] = useState(initialValue || "");
+  const [savedValue, setSavedValue] = useState(initialValue || "");
+  const [status, setStatus] = useState("idle"); // idle | saving | saved | error
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    setValue(initialValue || "");
+    setSavedValue(initialValue || "");
+    setStatus("idle");
+  }, [initialValue, userId]);
+
+  const dirty = value !== savedValue;
+
+  const save = async () => {
+    if (!dirty || status === "saving") return;
+    setStatus("saving");
+    setErrorMsg("");
+    try {
+      await api.patch(`/${platform}/admin/users/${userId}/note/`, { note: value });
+      setSavedValue(value);
+      setStatus("saved");
+      if (onSaved) onSaved(userId, value);
+      setTimeout(() => setStatus((s) => (s === "saved" ? "idle" : s)), 1500);
+    } catch (err) {
+      setStatus("error");
+      setErrorMsg(err.response?.data?.error || err.message || "Save failed");
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 180 }}>
+      <textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            e.currentTarget.blur();
+          }
+        }}
+        placeholder="Add note…"
+        rows={2}
+        style={{
+          width: 200,
+          minHeight: 38,
+          padding: "6px 8px",
+          borderRadius: 6,
+          border: `1px solid ${status === "error" ? "#c62828" : dirty ? "#ffb74d" : "#ddd"}`,
+          fontSize: 12,
+          fontFamily: "inherit",
+          resize: "vertical",
+          outline: "none",
+          background: status === "saving" ? "#fafafa" : "#fff",
+        }}
+      />
+      <div style={{ fontSize: 10, height: 12, color: status === "error" ? "#c62828" : "#9e9e9e" }}>
+        {status === "saving" && "Saving…"}
+        {status === "saved" && "✓ Saved"}
+        {status === "error" && `⚠ ${errorMsg}`}
+        {status === "idle" && dirty && "Unsaved"}
+      </div>
+    </div>
+  );
 };
 
 // ─── sub-component: class breakdown row ─────────────────────────────────────
@@ -120,6 +191,7 @@ const UserDatasheet = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expandedRows, setExpandedRows] = useState(new Set());
+  const [notes, setNotes] = useState({}); // userId -> latest note text
 
   // filters
   const [search, setSearch] = useState("");
@@ -135,7 +207,11 @@ const UserDatasheet = () => {
     setDisplayCount(200);
     try {
       const res = await api.get(`/${platform}/admin/user-datasheet/`, { timeout: 60000 });
-      setUsers(res.data.users || []);
+      const fetched = res.data.users || [];
+      setUsers(fetched);
+      const seed = {};
+      fetched.forEach((u) => { seed[u.id] = u.admin_note || ""; });
+      setNotes(seed);
     } catch (err) {
       if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
         setError("Request timed out — the server is taking too long. Try refreshing.");
@@ -303,7 +379,7 @@ const UserDatasheet = () => {
           <option value="trial">Used Trial</option>
           <option value="no_profile">No Profile</option>
         </select>
-        <button onClick={() => exportCSV(filtered, platform)} style={styles.exportBtn}>
+        <button onClick={() => exportCSV(filtered, platform, notes)} style={styles.exportBtn}>
           Export CSV ({filtered.length})
         </button>
         <button onClick={fetchData} style={styles.refreshBtn}>↻ Refresh</button>
@@ -330,6 +406,7 @@ const UserDatasheet = () => {
             <thead>
               <tr>
                 <th style={{ ...styles.th, width: 32 }} />
+                <th style={styles.th}>Note</th>
                 <SortTh field="full_name" label="Name" />
                 <th style={styles.th}>Phone</th>
                 <SortTh field="date_joined" label="Joined" />
@@ -349,7 +426,7 @@ const UserDatasheet = () => {
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={platform === "zyrax" ? 15 : 14} style={styles.emptyCell}>
+                  <td colSpan={platform === "zyrax" ? 16 : 15} style={styles.emptyCell}>
                     No users found
                   </td>
                 </tr>
@@ -369,6 +446,14 @@ const UserDatasheet = () => {
                         >
                           {expanded ? "▾" : "▸"}
                         </button>
+                      </td>
+                      <td style={{ ...styles.td, whiteSpace: "normal", verticalAlign: "top" }}>
+                        <NoteCell
+                          userId={u.id}
+                          initialValue={notes[u.id] ?? u.admin_note ?? ""}
+                          platform={platform}
+                          onSaved={(id, val) => setNotes((m) => ({ ...m, [id]: val }))}
+                        />
                       </td>
                       <td style={styles.td}>
                         <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
@@ -441,7 +526,7 @@ const UserDatasheet = () => {
                     {/* Expanded class breakdown */}
                     {expanded && (
                       <tr>
-                        <td colSpan={platform === "zyrax" ? 15 : 14} style={styles.expandedCell}>
+                        <td colSpan={platform === "zyrax" ? 16 : 15} style={styles.expandedCell}>
                           <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-start" }}>
                             <div>
                               <div style={styles.expandLabel}>Class Attendance Breakdown</div>
